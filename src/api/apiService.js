@@ -61,7 +61,7 @@ function handleFileUpload(data, isFileUpload, fileKey) {
 
 // 统一的请求方法，处理所有不同的请求
 // 统一的请求方法，处理所有不同的请求
-async function request({method, url, data, params, pathParams, headers, isFileUpload, fileKey, requiresAuth}) {
+async function request({method, url, data, params, pathParams, headers, isFileUpload, fileKey, requiresAuth, ...config}) {
     // 替换路径参数
     if (pathParams) {
         Object.keys(pathParams).forEach((key) => {
@@ -80,19 +80,20 @@ async function request({method, url, data, params, pathParams, headers, isFileUp
     }
 
     // 设置请求配置
-    const config = {
+    const axiosConfig = {
         method,
         url,
         headers: {...headers},
         params,  // GET 请求参数
         data,    // POST 请求体数据
         requiresAuth,
+        ...config
     };
 
     // return await instance(config);
     try {
         // 发起请求
-        const response = await instance(config);
+        const response = await instance(axiosConfig);
         // console.log(123, response);
         // 可以根据需求对返回的数据进行处理（例如统一格式化）
         if (200 <= response.status < 300) {
@@ -127,7 +128,28 @@ const apiConfig = {
         url: '/api/user/users/me',
         isFileUpload: false,
     },
-
+    // 文件上传API
+    uploadFile: {
+        method: 'POST',
+        url: '/api/files/upload',
+        isFileUpload: true,
+        fileKey: 'file',
+        requiresAuth: true
+    },
+    // 创建文件夹API
+    createFolder: {
+        method: 'POST',
+        url: '/api/files/folders',
+        isFileUpload: false,
+        requiresAuth: true
+    },
+    // 获取文件列表API
+    getFileList: {
+        method: 'GET',
+        url: '/api/files/list',
+        isFileUpload: false,
+        requiresAuth: true
+    }
 };
 
 // 生成 API 请求函数
@@ -144,7 +166,7 @@ function createApiMethods(config) {
         }
         const finalConfig = Object.assign({}, defaultConfig, config[apiName]);
         const {method, url, isFileUpload, fileKey, requiresAuth} = finalConfig;
-        apiMethods[apiName] = async (data = {}, params = {}, pathParams = {}, headers = {}) => {
+        apiMethods[apiName] = async (data = {}, params = {}, pathParams = {}, headers = {}, config = {}) => {
             // console.log(`api request ${apiName} from url ${url}`);
             return await request({
                 method,
@@ -156,6 +178,7 @@ function createApiMethods(config) {
                 isFileUpload,
                 fileKey,
                 requiresAuth,
+                ...config
             });
         };
     });
