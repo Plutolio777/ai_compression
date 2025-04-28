@@ -149,6 +149,22 @@ const apiConfig = {
         url: '/api/files/list',
         isFileUpload: false,
         requiresAuth: true
+    },
+    // 模型配置相关API
+    getModelConfig: {
+        method: 'GET',
+        url: '/api/model/config',
+        requiresAuth: true
+    },
+    saveModelConfig: {
+        method: 'POST', 
+        url: '/api/model/config',
+        requiresAuth: true
+    },
+    testModelConnection: {
+        method: 'POST',
+        url: '/api/model/test',
+        requiresAuth: true
     }
 };
 

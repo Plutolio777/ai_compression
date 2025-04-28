@@ -51,6 +51,10 @@
             <div v-if="currentMenu === 'cloud'" class="flex-1 ml-64 min-h-screen">
                 <Files/>
             </div>
+            <!-- 模型配置内容 -->
+            <div v-if="currentMenu === 'model'" class="flex-1 ml-64 p-6">
+                <ModelConfig/>
+            </div>
         </div>
     </div>
 
@@ -61,6 +65,7 @@
 import { ref, onUnmounted, reactive, computed } from 'vue';
 import Compression from './views/Compression.vue';
 import Files from './views/Files.vue';
+import ModelConfig from './views/ModelConfig.vue';
 
 const avatarUrl = 'https://ai-public.mastergo.com/ai/img_res/9099b9d9c052e912f4fb1f438e5b117b.jpg';
 
@@ -68,6 +73,7 @@ const currentMenu = ref('compress');
 const menuItems = [
     { id: 'compress', name: '智能解压缩', icon: 'fas fa-compress-arrows-alt' },
     { id: 'cloud', name: '网盘中心', icon: 'fas fa-cloud' },
+    { id: 'model', name: '模型配置', icon: 'fas fa-sliders-h' },
     { id: 'strategy', name: '智能策略', icon: 'fas fa-brain' },
     { id: 'settings', name: '系统设置', icon: 'fas fa-cog' },
 ];
