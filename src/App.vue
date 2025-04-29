@@ -55,6 +55,10 @@
             <div v-if="currentMenu === 'model'" class="flex-1 ml-64 p-6">
                 <ModelConfig/>
             </div>
+            <!-- 智能策略内容 -->
+            <div v-if="currentMenu === 'strategy'" class="flex-1 ml-64 p-6">
+                <Strategy/>
+            </div>
         </div>
     </div>
 
@@ -66,6 +70,7 @@ import { ref, onUnmounted, reactive, computed } from 'vue';
 import Compression from './views/Compression.vue';
 import Files from './views/Files.vue';
 import ModelConfig from './views/ModelConfig.vue';
+import Strategy from './views/Strategy.vue';
 
 const avatarUrl = 'https://ai-public.mastergo.com/ai/img_res/9099b9d9c052e912f4fb1f438e5b117b.jpg';
 

@@ -165,6 +165,45 @@ const apiConfig = {
         method: 'POST',
         url: '/api/model/test',
         requiresAuth: true
+    },
+    // 智能策略API
+    getStrategy: {
+        method: 'GET',
+        url: '/api/strategies/:id',
+        requiresAuth: true
+    },
+    getStrategies: {
+        method: 'GET',
+        url: '/api/strategies',
+        requiresAuth: true
+    },
+    createStrategy: {
+        method: 'POST',
+        url: '/api/strategies',
+        requiresAuth: true
+    },
+    updateStrategy: {
+        method: 'PUT',
+        url: '/api/strategies/:id',
+        requiresAuth: true
+    },
+    exportStrategy: {
+        method: 'POST',
+        url: '/api/strategies/export',
+        requiresAuth: true
+    },
+    importStrategy: {
+        method: 'POST',
+        url: '/api/strategies/import',
+        isFileUpload: true,
+        fileKey: 'strategyFile',
+        requiresAuth: true
+    },
+    // 开发环境mock数据
+    mockStrategies: {
+        method: 'GET',
+        url: '/api/mock/strategies',
+        requiresAuth: false
     }
 };
 
