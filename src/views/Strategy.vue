@@ -22,11 +22,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-700">策略名称</label>
-                <input v-model="compressionStrategy.name" class="input-field">
+                <!-- <input v-model="compressionStrategy.name" class="input-field"> -->
               </div>
               <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-700">策略描述</label>
-                <input v-model="compressionStrategy.description" class="input-field">
+                <!-- <input v-model="compressionStrategy.description" class="input-field"> -->
               </div>
             </div>
           </div>
@@ -55,7 +55,7 @@
 
             <draggable 
               v-model="compressionStrategy.compression.rules"
-              item-key="uuid"
+              :item-key="item => item.uuid"
               handle=".drag-handle"
               class="space-y-4 relative z-0"
             >
@@ -66,7 +66,7 @@
                       <div class="drag-handle cursor-move pt-1 text-gray-400 hover:text-gray-600">
                         <i class="fas fa-grip-vertical"></i>
                       </div>
-                  <div :class="['text-xl', iconMapping[getFileCategory(element.config.fileTypes || '')].color]">
+                      <div :class="['text-xl', iconMapping[getFileCategory(element.config.fileTypes || '')].color]">
                         <i :class="['fas', strategyTypes.find(t => t.value === element.type)?.icon]"></i>
                       </div>
                       <div>
@@ -82,8 +82,8 @@
                   <!-- 动态表单区域 -->
                   <div class="mt-4 pt-4 border-t border-gray-100">
                   <component :is="getRuleComponent(element.type)" 
-                               v-model="element.config"
-                               :key="`${element.uuid}`" />
+                               v-model:modelValue="element.config"
+                               :key="`${element.uuid}_${index}`" />
                   </div>
                 </div>
               </template>
@@ -146,7 +146,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineAsyncComponent, shallowRef } from 'vue'
+import { ref, onMounted, defineAsyncComponent,  shallowRef,  markRaw} from 'vue'
 import apiService from '@/api/apiService'
 import draggable from 'vuedraggable'
 
@@ -181,7 +181,7 @@ const getFileCategory = (fileTypes) => {
     { value: 'scenario', label: '业务场景', icon: 'fa-briefcase' }
   ]
 
-const compressionStrategy = ref({
+const compressionStrategy = shallowRef({
   name: '默认压缩策略',
   description: '适用于普通文件的默认压缩策略',
   compression: {
@@ -190,11 +190,11 @@ const compressionStrategy = ref({
         type: 'fileType',
         uuid: crypto.randomUUID(), // 使用更可靠的唯一标识
         name: '图片压缩策略',
-        config: {
+        config: markRaw({
           fileTypes: '.jpg,.png',
           fileCategory: 'image',
           algorithm: 'zip',
-        },
+        }),
         showAlgorithmList: false
       }
     ]
@@ -232,17 +232,17 @@ const addRule = (type) => {
       baseRule.config = { fileTypes: '', fileCategory: '', algorithm: '' }
       break
     case 'fileSize':
-      baseRule.config = { sizeRange: 'medium', splitVolume: false }
+      baseRule.config = { sizeRange: 'medium', splitVolume: false , algorithm: ''}
       break
     case 'frequency':
-      baseRule.config = { frequency: 'medium' }
+      baseRule.config = { frequency: 'medium' , algorithm: ''}
       break
     case 'scenario':
-      baseRule.config = { scenario: 'storage' }
+      baseRule.config = { scenario: 'storage' , algorithm: ''}
       break
   }
-
   compressionStrategy.value.compression.rules.push(baseRule)
+  compressionStrategy.value = {...compressionStrategy.value}
 }
 
 // 移除规则
@@ -263,7 +263,7 @@ const saveAllStrategies = async () => {
   if (isDev) {
     // 开发环境模拟保存
     console.log('保存策略:', {
-      compression: compressionStrategy.value,
+      compression: compressionStrategy.value.compression.rules,
       archive: archiveStrategy.value
     })
     return { success: true }

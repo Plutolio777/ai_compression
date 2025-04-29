@@ -55,12 +55,11 @@
 </template>
 
 <script setup>
-import { de } from 'element-plus/es/locale/index.mjs'
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch } from 'vue'
 
 const showAlgorithmList = ref(false)
-const localValue = ref({})
 const inputRef = ref(null)
+const localValue = ref()
 
 const props = defineProps({
   modelValue: {
@@ -70,11 +69,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue'])
-
-// 初始化本地值
 localValue.value = {...props.modelValue}
 
-watch(() => props, () => {
+
+watch(() => props.modelValue, () => {
   debugger
 }, { deep: true })
 
@@ -88,23 +86,16 @@ watch(() => props.modelValue._version, (newVersion) => {
 
 
 // 优化输入处理，带版本控制
-let syncTimer = null
 const handleSelect= (value) => {
     // 立即更新本地状态
     localValue.value = { 
       ...localValue.value, 
       algorithm: value,
-      _version: localValue.value._version || 0
     }
 
-    // 延迟同步父级
-    clearTimeout(syncTimer)
-    syncTimer = setTimeout(() => {
-      emit('update:modelValue', {
-        ...localValue.value,
-        _version: (localValue.value._version || 0) + 1
-      })
-    }, 300)
+    console.log(localValue.value)
+    emit('update:modelValue', localValue.value)
+   
     showAlgorithmList.value = false
 }
 
@@ -113,26 +104,25 @@ const handleInput = (value) => {
   localValue.value = { 
     ...localValue.value, 
     fileTypes: value,
-    _version: localValue.value._version || 0
   }
+  emit('update:modelValue', localValue.value)
+  // // 延迟同步父级
+  // clearTimeout(syncTimer)
+  // syncTimer = setTimeout(() => {
+  //   emit('update:modelValue', {
+  //     ...localValue.value,
+  //     _version: (localValue.value._version || 0) + 1
+  //   })
+  // }, 300)
   
-  // 延迟同步父级
-  clearTimeout(syncTimer)
-  syncTimer = setTimeout(() => {
-    emit('update:modelValue', {
-      ...localValue.value,
-      _version: (localValue.value._version || 0) + 1
-    })
-  }, 300)
-  
-  // 保持焦点
-  nextTick(() => {
-    if (inputRef.value) {
-      inputRef.value.focus()
-      const pos = value.length
-      inputRef.value.setSelectionRange(pos, pos)
-    }
-  })
+  // // 保持焦点
+  // nextTick(() => {
+  //   if (inputRef.value) {
+  //     inputRef.value.focus()
+  //     const pos = value.length
+  //     inputRef.value.setSelectionRange(pos, pos)
+  //   }
+  // })
 }
 
 const algorithms = [

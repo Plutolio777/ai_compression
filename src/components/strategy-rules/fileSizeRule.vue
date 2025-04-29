@@ -15,7 +15,7 @@
       
       <el-form-item label="推荐算法">
         <el-select 
-          v-model="rule.algorithm" 
+          v-model="modelValue.algorithm" 
           class="w-full"
           placeholder="根据文件大小自动推荐"
         >
@@ -59,10 +59,6 @@ const props = defineProps({
     type: Object,
     required: true
   },
-  rule: {
-    type: Object,
-    required: true
-  }
 })
 
 const handleSizeRangeChange = (val) => {
