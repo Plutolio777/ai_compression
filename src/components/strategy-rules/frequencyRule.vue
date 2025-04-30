@@ -29,7 +29,7 @@
             @click.stop="showAlgorithmList = !showAlgorithmList"
             class="w-full flex items-center justify-between px-3 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 h-[32px] bg-white"
           >
-            <span>{{ getAlgorithmLabel(rule.algorithm) }}</span>
+            <span>{{ getAlgorithmLabel(modelValue.algorithm) }}</span>
             <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
           </button>
           <div 
@@ -40,12 +40,12 @@
             <button
               v-for="algo in algorithms"
               :key="algo.value"
-              @click.stop="rule.algorithm = algo.value; showAlgorithmList = false"
+              @click.stop="modelValue.algorithm = algo.value; showAlgorithmList = false"
               class="w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center"
             >
               <span>{{ algo.label }}</span>
               <i 
-                v-if="rule.algorithm === algo.value"
+                v-if="modelValue.algorithm === algo.value"
                 class="fas fa-check ml-auto text-blue-500"
               ></i>
             </button>
@@ -58,7 +58,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-
+const modelValue = defineModel()  // 自动建立 v-model 绑定
 const showAlgorithmList = ref(false);
 
 // 点击外部关闭下拉菜单
@@ -88,16 +88,7 @@ const getAlgorithmLabel = (value) => {
   return algorithms.find(a => a.value === value)?.label || '选择算法';
 };
 
-const props = defineProps({
-  modelValue: {
-    type: Object,
-    required: true
-  },
-  rule: {
-    type: Object, 
-    required: true
-  }
-})
+
 
 const frequencyOptions = ref([
   { value: 'high', label: '高频', icon: 'fa-bolt' },
@@ -108,13 +99,13 @@ const frequencyOptions = ref([
 const handleFrequencyChange = (val) => {
   switch(val) {
     case 'high':
-      props.rule.algorithm = 'zip'
+      modelValue.algorithm = 'zip'
       break
     case 'medium':
-      props.rule.algorithm = 'gzip'
+      modelValue.algorithm = 'gzip'
       break
     case 'low':
-      props.rule.algorithm = 'lzma'
+      modelValue.algorithm = 'lzma'
       break
   }
 }

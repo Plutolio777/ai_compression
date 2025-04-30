@@ -59,6 +59,10 @@
             <div v-if="currentMenu === 'strategy'" class="flex-1 ml-64 p-6">
                 <Strategy/>
             </div>
+            <!-- 标签管理内容 -->
+            <div v-if="currentMenu === 'tags'" class="flex-1 ml-64 p-6">
+                <Tags/>
+            </div>
         </div>
     </div>
 
@@ -71,6 +75,7 @@ import Compression from './views/Compression.vue';
 import Files from './views/Files.vue';
 import ModelConfig from './views/ModelConfig.vue';
 import Strategy from './views/Strategy.vue';
+import Tags from './views/Tags.vue';
 
 const avatarUrl = 'https://ai-public.mastergo.com/ai/img_res/9099b9d9c052e912f4fb1f438e5b117b.jpg';
 
@@ -80,6 +85,7 @@ const menuItems = [
     { id: 'cloud', name: '网盘中心', icon: 'fas fa-cloud' },
     { id: 'model', name: '模型配置', icon: 'fas fa-sliders-h' },
     { id: 'strategy', name: '智能策略', icon: 'fas fa-brain' },
+    { id: 'tags', name: '标签管理', icon: 'fas fa-tags' },
     { id: 'settings', name: '系统设置', icon: 'fas fa-cog' },
 ];
 
