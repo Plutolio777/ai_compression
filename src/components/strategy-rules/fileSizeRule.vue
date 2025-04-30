@@ -65,7 +65,7 @@
 </template>
 
 <script setup>
-import { watch, ref } from 'vue'
+import { watch, ref ,toRaw} from 'vue'
 
 const showSizeRangeList = ref(false)
 const showAlgorithmList = ref(false)
@@ -107,7 +107,7 @@ const handleSizeRangeSelect = (value) => {
     ...localValue.value, 
     sizeRange: value
   }
-  emit('update:modelValue', localValue.value)
+  emit('update:modelValue', toRaw(localValue.value))
   showSizeRangeList.value = false
   
   // 根据文件大小自动推荐算法
@@ -129,7 +129,7 @@ const handleAlgorithmSelect = (value) => {
     ...localValue.value, 
     algorithm: value
   }
-  emit('update:modelValue', localValue.value)
+  emit('update:modelValue', toRaw(localValue.value))
   showAlgorithmList.value = false
 }
 </script>

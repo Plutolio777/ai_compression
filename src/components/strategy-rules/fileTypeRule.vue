@@ -55,11 +55,11 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, toRaw } from 'vue'
 
 const showAlgorithmList = ref(false)
 const inputRef = ref(null)
-const localValue = ref()
+
 
 const props = defineProps({
   modelValue: {
@@ -67,22 +67,10 @@ const props = defineProps({
     required: true
   },
 })
-
 const emit = defineEmits(['update:modelValue'])
-localValue.value = {...props.modelValue}
+const localValue = ref(toRaw((props.modelValue)))
 
-
-watch(() => props.modelValue, () => {
-  debugger
-}, { deep: true })
-
-// 版本控制监听
-watch(() => props.modelValue._version, (newVersion) => {
-  debugger
-  if (newVersion !== localValue.value._version) {
-    localValue.value = {...props.modelValue}
-  }
-}, { deep: true })
+console.log(localValue.value)
 
 
 // 优化输入处理，带版本控制
@@ -105,7 +93,7 @@ const handleInput = (value) => {
     ...localValue.value, 
     fileTypes: value,
   }
-  emit('update:modelValue', localValue.value)
+  emit('update:modelValue', toRaw(localValue.value))
   // // 延迟同步父级
   // clearTimeout(syncTimer)
   // syncTimer = setTimeout(() => {

@@ -81,7 +81,7 @@
                   
                   <!-- 动态表单区域 -->
                   <div class="mt-4 pt-4 border-t border-gray-100">
-                  <component :is="getRuleComponent(element.type)" 
+                  <component v-once :is="getRuleComponent(element.type)" 
                                v-model:modelValue="element.config"
                                :key="`${element.uuid}_${index}`" />
                   </div>
@@ -181,20 +181,21 @@ const getFileCategory = (fileTypes) => {
     { value: 'scenario', label: '业务场景', icon: 'fa-briefcase' }
   ]
 
-const compressionStrategy = shallowRef({
+const compressionStrategy = ref({
   name: '默认压缩策略',
   description: '适用于普通文件的默认压缩策略',
   compression: {
     rules: [
       {
         type: 'fileType',
+        
         uuid: crypto.randomUUID(), // 使用更可靠的唯一标识
         name: '图片压缩策略',
-        config: markRaw({
+        config: {
           fileTypes: '.jpg,.png',
           fileCategory: 'image',
           algorithm: 'zip',
-        }),
+        },
         showAlgorithmList: false
       }
     ]
@@ -242,7 +243,7 @@ const addRule = (type) => {
       break
   }
   compressionStrategy.value.compression.rules.push(baseRule)
-  compressionStrategy.value = {...compressionStrategy.value}
+  // compressionStrategy.value = {...compressionStrategy.value}
 }
 
 // 移除规则
