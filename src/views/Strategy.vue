@@ -19,14 +19,17 @@
           <!-- 基本信息 -->
           <div class="mb-6">
             <h4 class="font-medium mb-3 text-gray-700 border-b pb-2">基本信息</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-4">
               <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-700">策略名称</label>
-                <!-- <input v-model="compressionStrategy.name" class="input-field"> -->
+                <input v-model="compressionStrategy.name" class="input-field h-9 text-sm rounded-lg">
               </div>
               <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-700">策略描述</label>
-                <!-- <input v-model="compressionStrategy.description" class="input-field"> -->
+                <textarea 
+                  v-model="compressionStrategy.description"
+                  class="input-field"
+                  placeholder="请输入策略描述..."></textarea>
               </div>
             </div>
           </div>
@@ -81,9 +84,9 @@
                   
                   <!-- 动态表单区域 -->
                   <div class="mt-4 pt-4 border-t border-gray-100">
-                  <component v-once :is="getRuleComponent(element.type)" 
-                               v-model:modelValue="element.config"
-                               :key="`${element.uuid}_${index}`" />
+                  <component :is="getRuleComponent(element.type)" 
+                               v-model="element.config"
+                               :key="element.uuid" />
                   </div>
                 </div>
               </template>
@@ -252,12 +255,19 @@ const removeRule = (index) => {
 }
 
 // 获取对应类型的组件
-const getRuleComponent = (type) => {
-  return defineAsyncComponent(() => 
-    import(`@/components/strategy-rules/${type}Rule.vue`)
-  )
-}
+const asyncComponentCache = new Map()
 
+const getRuleComponent = (type) => {
+  if (!asyncComponentCache.has(type)) {
+    asyncComponentCache.set(
+      type,
+      defineAsyncComponent(() =>
+        import(`@/components/strategy-rules/${type}Rule.vue`)
+      )
+    )
+  }
+  return asyncComponentCache.get(type)
+}
 
 // 保存所有策略
 const saveAllStrategies = async () => {
@@ -378,7 +388,15 @@ select:disabled {
 .input-field {
   @apply w-full px-4 py-3 border border-gray-200 rounded-xl 
          focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400
-         transition-all duration-200 bg-white shadow-sm;
+         bg-white shadow-sm;
+}
+
+/* 文本域特殊样式 */
+.input-field[type="textarea"],
+.input-field[resize-y] {
+  transition: height 0.2s ease;
+  resize: vertical;
+  min-height: 80px;
 }
 
 /* 主按钮 */

@@ -6,14 +6,13 @@
         <div class="relative">
           <input
             ref="inputRef"
-            :value="localValue.fileTypes"
-            @input="handleInput($event.target.value)"
+            v-model="model.fileTypes"
             placeholder="输入文件扩展名,用逗号分隔"
             class="w-full px-3 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 h-[32px]"
           />
           <button 
-            v-if="localValue.fileTypes"
-            @click="handleClearInput"
+            v-if="model.fileTypes"
+            @click="model.fileTypes = ''"
             class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
             <i class="fas fa-times"></i>
@@ -28,7 +27,7 @@
             @click.stop="showAlgorithmList = !showAlgorithmList"
             class="w-full flex items-center justify-between px-3 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white h-[32px]"
           >
-            <span>{{ getAlgorithmLabel(localValue.algorithm) }}</span>
+            <span>{{ getAlgorithmLabel(model.algorithm) }}</span>
             <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
           </button>
           <div 
@@ -38,12 +37,12 @@
             <button
               v-for="algo in algorithms"
               :key="algo.value"
-              @click.stop="handleSelect(algo.value)"
+              @click.stop="model.algorithm = algo.value; showAlgorithmList = false"
               class="w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center"
             >
               <span>{{ algo.label }}</span>
               <i 
-                v-if="localValue.algorithm === algo.value"
+                v-if="model.algorithm === algo.value"
                 class="fas fa-check ml-auto text-blue-500"
               ></i>
             </button>
@@ -55,63 +54,14 @@
 </template>
 
 <script setup>
-import { ref, watch, toRaw } from 'vue'
-
+import { ref, watch, toRaw, defineModel  } from 'vue'
+console.log("子组件重载")
 const showAlgorithmList = ref(false)
 const inputRef = ref(null)
 
-
-const props = defineProps({
-  modelValue: {
-    type: Object,
-    required: true
-  },
-})
-const emit = defineEmits(['update:modelValue'])
-const localValue = ref(toRaw((props.modelValue)))
-
-console.log(localValue.value)
+const model = defineModel()  // 自动建立 v-model 绑定
 
 
-// 优化输入处理，带版本控制
-const handleSelect= (value) => {
-    // 立即更新本地状态
-    localValue.value = { 
-      ...localValue.value, 
-      algorithm: value,
-    }
-
-    console.log(localValue.value)
-    emit('update:modelValue', localValue.value)
-   
-    showAlgorithmList.value = false
-}
-
-const handleInput = (value) => {
-  // 立即更新本地状态
-  localValue.value = { 
-    ...localValue.value, 
-    fileTypes: value,
-  }
-  emit('update:modelValue', toRaw(localValue.value))
-  // // 延迟同步父级
-  // clearTimeout(syncTimer)
-  // syncTimer = setTimeout(() => {
-  //   emit('update:modelValue', {
-  //     ...localValue.value,
-  //     _version: (localValue.value._version || 0) + 1
-  //   })
-  // }, 300)
-  
-  // // 保持焦点
-  // nextTick(() => {
-  //   if (inputRef.value) {
-  //     inputRef.value.focus()
-  //     const pos = value.length
-  //     inputRef.value.setSelectionRange(pos, pos)
-  //   }
-  // })
-}
 
 const algorithms = [
   { value: 'zip', label: 'ZIP' },
@@ -123,11 +73,6 @@ const getAlgorithmLabel = (value) => {
   return algorithms.find(a => a.value === value)?.label || '选择算法'
 }
 
-const handleClearInput = (e) => {
-  e.stopPropagation()
-  localValue.value.fileTypes = ''
-  emit('update:modelValue', {...localValue.value})
-}
 </script>
 
 <style scoped>
