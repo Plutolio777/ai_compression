@@ -19,11 +19,36 @@
                         <i class="fas fa-cog"></i>
                         <span>设置</span>
                     </button>
-                    <div class="flex items-center space-x-2">
+                    <div class="relative" @click.stop="toggleUserMenu">
+                      <div class="flex items-center space-x-2 cursor-pointer">
                         <div class="w-8 h-8 rounded-full overflow-hidden">
-                            <img :src="avatarUrl" class="w-full h-full object-cover" alt="用户头像" />
+                          <img :src="user?.avatar || avatarUrl" class="w-full h-full object-cover" alt="用户头像" />
                         </div>
-                        <span class="text-gray-700">陈思远</span>
+                        <span class="text-gray-700">{{ user?.name || '未登录' }}</span>
+                      </div>
+                      <transition name="fade">
+                        <div v-if="showUserMenu" class="absolute right-0 mt-2 w-64 bg-white shadow-lg rounded-lg p-4 z-50">
+                          <div v-if="user" class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                              <img :src="user.avatar || avatarUrl" class="w-12 h-12 rounded-full">
+                              <div>
+                                <p class="font-medium">{{ user.name }}</p>
+                                <p class="text-sm text-gray-500">{{ user.email }}</p>
+                              </div>
+                            </div>
+                            <div class="text-sm"><span class="text-gray-500">公司：</span>{{ user.company || '未设置' }}</div>
+                            <div class="text-sm"><span class="text-gray-500">职位：</span>{{ user.position || '未设置' }}</div>
+                            <button @click="logout" class="w-full mt-2 text-red-500 hover:bg-red-50 p-2 rounded text-sm">
+                              退出登录
+                            </button>
+                          </div>
+                          <div v-else class="space-y-2">
+                            <button @click="openLoginModal" class="w-full bg-blue-500 text-white p-2 rounded">
+                              登录/注册
+                            </button>
+                          </div>
+                        </div>
+                      </transition>
                     </div>
                 </div>
             </div>
@@ -70,7 +95,8 @@
 
 </template>
 <script lang="ts" setup>
-import { ref, onUnmounted, reactive, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useStore } from 'vuex';
 import Compression from './views/Compression.vue';
 import Files from './views/Files.vue';
 import ModelConfig from './views/ModelConfig.vue';
@@ -79,7 +105,25 @@ import Tags from './views/Tags.vue';
 
 const avatarUrl = 'https://ai-public.mastergo.com/ai/img_res/9099b9d9c052e912f4fb1f438e5b117b.jpg';
 
+const store = useStore();
 const currentMenu = ref('compress');
+const showUserMenu = ref(false);
+const user = computed(() => store.state.user);
+
+const toggleUserMenu = () => {
+  showUserMenu.value = !showUserMenu.value;
+};
+
+const logout = () => {
+  store.commit('clearUser');
+  showUserMenu.value = false;
+  // 这里可以添加跳转到首页的逻辑
+};
+
+const openLoginModal = () => {
+  showUserMenu.value = false;
+  // 这里可以触发登录弹窗显示
+};
 const menuItems = [
     { id: 'compress', name: '智能解压缩', icon: 'fas fa-compress-arrows-alt' },
     { id: 'cloud', name: '网盘中心', icon: 'fas fa-cloud' },
@@ -90,6 +134,22 @@ const menuItems = [
 ];
 
 
+
+// 点击外部关闭弹窗
+const handleClickOutside = (event) => {
+  const userMenu = event.target.closest('.relative');
+  if (!userMenu && showUserMenu.value) {
+    showUserMenu.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 
 // 初始化时设置当前菜单为网盘中心
 currentMenu.value = 'cloud';

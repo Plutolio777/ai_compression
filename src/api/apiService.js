@@ -199,12 +199,33 @@ const apiConfig = {
         fileKey: 'strategyFile',
         requiresAuth: true
     },
-    // 开发环境mock数据
-    mockStrategies: {
-        method: 'GET',
-        url: '/api/mock/strategies',
-        requiresAuth: false
-    }
+  // 开发环境mock数据
+  mockStrategies: {
+    method: 'GET',
+    url: '/api/mock/strategies',
+    requiresAuth: false
+  },
+  // 标签管理API
+  getTags: {
+    method: 'GET',
+    url: '/api/tags',
+    requiresAuth: true
+  },
+  createTag: {
+    method: 'POST',
+    url: '/api/tags',
+    requiresAuth: true
+  },
+  updateTag: {
+    method: 'PUT',
+    url: '/api/tags/:id',
+    requiresAuth: true
+  },
+  deleteTag: {
+    method: 'DELETE',
+    url: '/api/tags/:id',
+    requiresAuth: true
+  }
 };
 
 // 生成 API 请求函数

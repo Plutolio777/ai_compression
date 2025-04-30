@@ -313,6 +313,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import apiService from '@/api/apiService'
 
 interface Tag {
   id: string
@@ -422,21 +423,33 @@ const submitForm = async () => {
     return
   }
 
-  // 模拟API调用
-  if (isEdit.value) {
-    // 更新逻辑
-    const index = tags.value.findIndex(t => t.id === form.id)
-    tags.value.splice(index, 1, { ...form })
-    showToast('标签更新成功')
-  } else {
-    // 创建逻辑
-    tags.value.unshift({
-      ...form,
-      id: Date.now().toString(),
-      fileCount: 0,
-      createdAt: new Date().toISOString()
-    })
-    showToast('标签创建成功')
+  try {
+    if (isEdit.value) {
+      // 更新标签
+      const result = await apiService.updateTag(
+        form,
+        {},
+        {id: form.id}
+      )
+      if (result.success) {
+        const index = tags.value.findIndex(t => t.id === form.id)
+        tags.value.splice(index, 1, result.data)
+        showToast('标签更新成功')
+      } else {
+        showToast(result.error || '更新失败', 'error')
+      }
+    } else {
+      // 创建标签
+      const result = await apiService.createTag(form)
+      if (result.success) {
+        tags.value.unshift(result.data)
+        showToast('标签创建成功')
+      } else {
+        showToast(result.error || '创建失败', 'error')
+      }
+    }
+  } catch (error) {
+    showToast('请求出错: ' + error.message, 'error')
   }
   
   dialogVisible.value = false
@@ -471,37 +484,41 @@ const handleDelete = (row: Tag) => {
   deleteConfirmVisible.value = true
 }
 
-const confirmDelete = () => {
+const confirmDelete = async () => {
   if (!deletingTag.value) return
   
-  tags.value = tags.value.filter(t => t.id !== deletingTag.value?.id)
-  showToast('删除成功')
+  try {
+    const result = await apiService.deleteTag(
+      {},
+      {},
+      {id: deletingTag.value.id}
+    )
+    if (result.success) {
+      tags.value = tags.value.filter(t => t.id !== deletingTag.value?.id)
+      showToast('删除成功')
+    } else {
+      showToast(result.error || '删除失败', 'error')
+    }
+  } catch (error) {
+    showToast('请求出错: ' + error.message, 'error')
+  }
+  
   deleteConfirmVisible.value = false
   deletingTag.value = null
 }
 
-// 模拟初始化数据
-onMounted(() => {
-  setTimeout(() => {
-    tags.value = [
-      {
-        id: '1',
-        name: '重要文件',
-        description: '重要项目文件，需要优先处理',
-        color: '#FF6B6B',
-        fileCount: 42,
-        createdAt: '2025-04-01'
-      },
-      {
-        id: '2',
-        name: '临时文件',
-        description: '临时缓存文件，可定期清理',
-        color: '#4ECDC4',
-        fileCount: 15,
-        createdAt: '2025-04-10'
-      }
-    ]
-    pagination.total = tags.value.length
-  }, 500)
+// 获取标签数据
+onMounted(async () => {
+  try {
+    const result = await apiService.getTags()
+    if (result.success) {
+      tags.value = result.data.results
+      pagination.total = result.data.count
+    } else {
+      showToast(result.error || '获取标签失败', 'error')
+    }
+  } catch (error) {
+    showToast('请求出错: ' + error.message, 'error')
+  }
 })
 </script>
