@@ -6,8 +6,8 @@
     </div>
     
     <!-- 内容层 -->
-    <div class="relative z-10 h-full flex flex-col justify-center px-8 bg-black bg-opacity-40 text-white">
-      <div class="max-w-4xl mx-auto space-y-8">
+    <div class="relative z-10 h-full flex flex-col justify-center px-8 text-white">
+      <div class="max-w-4xl space-y-8 text-left">
         <h1 class="text-5xl md:text-6xl font-bold leading-tight">
           智能文档压缩管理平台
         </h1>
