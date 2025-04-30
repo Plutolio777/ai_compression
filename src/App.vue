@@ -106,6 +106,7 @@ import ModelConfig from './views/ModelConfig.vue';
 import Strategy from './views/Strategy.vue';
 import Tags from './views/Tags.vue';
 import HomePage from './views/HomePage.vue';
+import FloatContact from './components/FloatContact.vue';
 
 const avatarUrl = 'https://ai-public.mastergo.com/ai/img_res/9099b9d9c052e912f4fb1f438e5b117b.jpg';
 
