@@ -282,6 +282,32 @@
     >
       {{ tooltipContent }}
     </div>
+
+    <!-- 删除确认弹窗 -->
+    <div v-if="deleteConfirmVisible" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div class="px-6 py-4 border-b">
+          <h3 class="text-lg font-medium text-gray-900">确认删除</h3>
+        </div>
+        <div class="px-6 py-4">
+          <p>确定要删除该标签吗？此操作不可撤销。</p>
+        </div>
+        <div class="px-6 py-4 border-t flex justify-end space-x-3">
+          <button
+            @click="deleteConfirmVisible = false"
+            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            取消
+          </button>
+          <button
+            @click="confirmDelete"
+            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          >
+            确认删除
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -429,6 +455,8 @@ const hideTooltip = () => {
 
 const windowWidth = ref(window.innerWidth)
 const windowHeight = ref(window.innerHeight)
+const deleteConfirmVisible = ref(false)
+const deletingTag = ref<Tag | null>(null)
 
 // 监听窗口大小变化
 onMounted(() => {
@@ -439,10 +467,17 @@ onMounted(() => {
 })
 
 const handleDelete = (row: Tag) => {
-  if (!confirm('确定删除该标签吗？')) return
+  deletingTag.value = row
+  deleteConfirmVisible.value = true
+}
+
+const confirmDelete = () => {
+  if (!deletingTag.value) return
   
-  tags.value = tags.value.filter(t => t.id !== row.id)
+  tags.value = tags.value.filter(t => t.id !== deletingTag.value?.id)
   showToast('删除成功')
+  deleteConfirmVisible.value = false
+  deletingTag.value = null
 }
 
 // 模拟初始化数据
