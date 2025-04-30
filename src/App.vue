@@ -54,7 +54,10 @@
             </div>
         </nav>
         <!-- 主体内容 -->
-        <div class="pt-16 flex min-h-screen bg-gray-50">
+        <div v-if="!user" class="pt-16 flex min-h-screen bg-gray-50">
+          <HomePage></HomePage>
+        </div>
+        <div v-else class="pt-16 flex min-h-screen bg-gray-50">
             <!-- 左侧菜单 -->
             <div class="w-64 bg-white shadow-sm fixed left-0 top-16 bottom-0 overflow-y-auto">
                 <div class="p-4 space-y-2">
@@ -102,6 +105,7 @@ import Files from './views/Files.vue';
 import ModelConfig from './views/ModelConfig.vue';
 import Strategy from './views/Strategy.vue';
 import Tags from './views/Tags.vue';
+import HomePage from './views/HomePage.vue';
 
 const avatarUrl = 'https://ai-public.mastergo.com/ai/img_res/9099b9d9c052e912f4fb1f438e5b117b.jpg';
 
