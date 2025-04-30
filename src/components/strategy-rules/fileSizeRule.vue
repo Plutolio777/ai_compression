@@ -1,58 +1,75 @@
 <template>
   <div class="space-y-4">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <el-form-item label="文件大小范围">
-        <el-select 
-          v-model="modelValue.sizeRange" 
-          class="w-full"
-          @change="handleSizeRangeChange"
-        >
-          <el-option label="小文件 (<1MB)" value="small" />
-          <el-option label="中等文件 (1MB-10MB)" value="medium" />
-          <el-option label="大文件 (>10MB)" value="large" />
-        </el-select>
-      </el-form-item>
-      
-      <el-form-item label="推荐算法">
-        <el-select 
-          v-model="modelValue.algorithm" 
-          class="w-full"
-          placeholder="根据文件大小自动推荐"
-        >
-          <el-option label="ZIP" value="zip" />
-          <el-option label="GZIP" value="gzip" />
-          <el-option label="BZ2" value="bz2" />
-          <el-option label="LZMA" value="lzma" />
-        </el-select>
-      </el-form-item>
-    </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">文件大小范围</label>
+        <div class="relative">
+          <button 
+            @click.stop="showSizeRangeList = !showSizeRangeList"
+            class="w-full flex items-center justify-between px-3 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white h-[32px]"
+          >
+            <span>{{ getSizeRangeLabel(localValue.sizeRange) }}</span>
+            <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+          </button>
+          <div 
+            v-if="showSizeRangeList"
+            class="absolute z-[9999] mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-visible"
+          >
+            <button
+              v-for="range in sizeRanges"
+              :key="range.value"
+              @click.stop="handleSizeRangeSelect(range.value)"
+              class="w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center"
+            >
+              <span>{{ range.label }}</span>
+              <i 
+                v-if="localValue.sizeRange === range.value"
+                class="fas fa-check ml-auto text-blue-500"
+              ></i>
+            </button>
+          </div>
+        </div>
+      </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <el-form-item label="分卷压缩">
-        <el-switch
-          v-model="modelValue.splitVolume"
-          active-text="启用"
-          inactive-text="禁用"
-        />
-      </el-form-item>
-
-      <div v-if="modelValue.splitVolume">
-        <el-form-item label="分卷大小(MB)">
-          <el-input-number 
-            v-model="modelValue.volumeSize" 
-            :min="1" 
-            :max="1000"
-            controls-position="right"
-            class="w-full"
-          />
-        </el-form-item>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">推荐算法</label>
+        <div class="relative">
+          <button 
+            @click.stop="showAlgorithmList = !showAlgorithmList"
+            class="w-full flex items-center justify-between px-3 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white h-[32px]"
+          >
+            <span>{{ getAlgorithmLabel(localValue.algorithm) }}</span>
+            <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+          </button>
+          <div 
+            v-if="showAlgorithmList"
+            class="absolute z-[9999] mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-visible"
+          >
+            <button
+              v-for="algo in algorithms"
+              :key="algo.value"
+              @click.stop="handleAlgorithmSelect(algo.value)"
+              class="w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center"
+            >
+              <span>{{ algo.label }}</span>
+              <i 
+                v-if="localValue.algorithm === algo.value"
+                class="fas fa-check ml-auto text-blue-500"
+              ></i>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { watch } from 'vue'
+import { watch, ref } from 'vue'
+
+const showSizeRangeList = ref(false)
+const showAlgorithmList = ref(false)
+const localValue = ref()
 
 const props = defineProps({
   modelValue: {
@@ -61,18 +78,58 @@ const props = defineProps({
   },
 })
 
-const handleSizeRangeChange = (val) => {
+const emit = defineEmits(['update:modelValue'])
+localValue.value = {...props.modelValue} || {}
+
+const sizeRanges = [
+  { value: 'small', label: '小文件 (<1MB)' },
+  { value: 'medium', label: '中等文件 (1MB-10MB)' },
+  { value: 'large', label: '大文件 (>10MB)' }
+]
+
+const algorithms = [
+  { value: 'zip', label: 'ZIP' },
+  { value: 'gzip', label: 'GZIP' },
+  { value: 'bz2', label: 'BZ2' },
+  { value: 'lzma', label: 'LZMA' }
+]
+
+const getSizeRangeLabel = (value) => {
+  return sizeRanges.find(r => r.value === value)?.label || '选择文件大小范围'
+}
+
+const getAlgorithmLabel = (value) => {
+  return algorithms.find(a => a.value === value)?.label || '选择算法'
+}
+
+const handleSizeRangeSelect = (value) => {
+  localValue.value = { 
+    ...localValue.value, 
+    sizeRange: value
+  }
+  emit('update:modelValue', localValue.value)
+  showSizeRangeList.value = false
+  
   // 根据文件大小自动推荐算法
-  switch(val) {
+  switch(value) {
     case 'small':
-      props.rule.algorithm = 'zip' // 小文件用ZIP快速压缩
+      localValue.value.algorithm = 'zip'
       break
     case 'medium':
-      props.rule.algorithm = 'gzip' // 中等文件用GZIP平衡压缩
+      localValue.value.algorithm = 'gzip'
       break
     case 'large':
-      props.rule.algorithm = 'lzma' // 大文件用LZMA高压缩率
+      localValue.value.algorithm = 'lzma'
       break
   }
+}
+
+const handleAlgorithmSelect = (value) => {
+  localValue.value = { 
+    ...localValue.value, 
+    algorithm: value
+  }
+  emit('update:modelValue', localValue.value)
+  showAlgorithmList.value = false
 }
 </script>
