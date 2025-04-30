@@ -94,8 +94,11 @@
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
               <tr>
-                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
+                <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
                   标签名称
+                </th>
+                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                  描述
                 </th>
                 <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                   关联文件
@@ -117,6 +120,15 @@
                       :style="{backgroundColor: row.color}"
                     ></span>
                     {{ row.name }}
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-gray-500 hidden md:table-cell max-w-[200px]">
+                  <div 
+                    class="truncate cursor-pointer hover:text-blue-500"
+                    @mouseenter="showTooltip($event, row.description || '-')"
+                    @mouseleave="hideTooltip"
+                  >
+                    {{ row.description || '-' }}
                   </div>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
@@ -215,6 +227,16 @@
                 请输入标签名称
               </div>
             </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">标签描述</label>
+              <textarea
+                v-model="form.description"
+                placeholder="请输入标签描述"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="3"
+              ></textarea>
+            </div>
             
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">标签颜色</label>
@@ -248,6 +270,18 @@
         </div>
       </div>
     </div>
+
+    <!-- 描述弹窗 -->
+    <div 
+      v-if="tooltipVisible"
+      class="fixed z-50 bg-white shadow-lg rounded-md p-3 border border-gray-200 max-w-xs pointer-events-none whitespace-normal break-words max-h-60 overflow-y-auto"
+      :style="{
+        left: `${Math.min(tooltipPosition.x + 10, windowWidth - 250)}px`,
+        top: `${Math.min(tooltipPosition.y + 10, windowHeight - 200)}px`
+      }"
+    >
+      {{ tooltipContent }}
+    </div>
   </div>
 </template>
 
@@ -257,6 +291,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 interface Tag {
   id: string
   name: string
+  description: string
   color: string
   fileCount: number
   createdAt: string
@@ -276,6 +311,9 @@ const selectedColor = ref('')
 const showColorPicker = ref(false)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
+const tooltipVisible = ref(false)
+const tooltipContent = ref('')
+const tooltipPosition = reactive({ x: 0, y: 0 })
 
 // 点击外部关闭颜色选择器
 const closeColorPicker = (e: MouseEvent) => {
@@ -304,6 +342,7 @@ const pagination = reactive({
 const form = reactive({
   id: '',
   name: '',
+  description: '',
   color: colorOptions[0]
 })
 
@@ -377,6 +416,28 @@ const submitForm = async () => {
   dialogVisible.value = false
 }
 
+const showTooltip = (event: MouseEvent, content: string) => {
+  tooltipContent.value = content
+  tooltipPosition.x = event.clientX
+  tooltipPosition.y = event.clientY
+  tooltipVisible.value = true
+}
+
+const hideTooltip = () => {
+  tooltipVisible.value = false
+}
+
+const windowWidth = ref(window.innerWidth)
+const windowHeight = ref(window.innerHeight)
+
+// 监听窗口大小变化
+onMounted(() => {
+  window.addEventListener('resize', () => {
+    windowWidth.value = window.innerWidth
+    windowHeight.value = window.innerHeight
+  })
+})
+
 const handleDelete = (row: Tag) => {
   if (!confirm('确定删除该标签吗？')) return
   
@@ -391,6 +452,7 @@ onMounted(() => {
       {
         id: '1',
         name: '重要文件',
+        description: '重要项目文件，需要优先处理',
         color: '#FF6B6B',
         fileCount: 42,
         createdAt: '2025-04-01'
@@ -398,6 +460,7 @@ onMounted(() => {
       {
         id: '2',
         name: '临时文件',
+        description: '临时缓存文件，可定期清理',
         color: '#4ECDC4',
         fileCount: 15,
         createdAt: '2025-04-10'
