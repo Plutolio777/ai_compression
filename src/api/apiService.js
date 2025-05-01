@@ -8,19 +8,41 @@ const instance = axios.create({
 
 // 获取当前登录的用户信息
 function getAccess() {
-    return store.state.access || localStorage.getItem("access"); // 从 Vuex 获取用户信息
+    return store.state.accessToken;
+}
+
+function getRefresh() {
+    return store.state.refreshToken;
 }
 
 
 // 添加请求拦截器，判断用户是否登录
 instance.interceptors.request.use(
-    (config) => {
+    async (config) => {
         if (config.requiresAuth) {
             const access = getAccess();
             if (access) {
                 config.headers['Authorization'] = `Bearer ${access}`;
             } else {
-                // todo 可以尝试刷新token
+                // 尝试刷新token
+                const refreshToken = getRefresh();
+                if (refreshToken) {
+                    try {
+                        const res = await instance.apiService.refreshToken({ refresh: refreshToken });
+                        if (res.success) {
+                            const { access } = res.data;
+                            store.commit('setUser', {
+                              user: store.state.user,
+                              token: access,
+                              refreshToken: store.state.refreshToken
+                            });
+                            config.headers['Authorization'] = `Bearer ${access}`;
+                            return config;
+                        }
+                    } catch (error) {
+                        console.error('刷新token失败:', error);
+                    }
+                }
                 console.error('用户未登录，请先登录');
                 return Promise.reject(new Error('用户未登录'));
             }
@@ -96,8 +118,14 @@ async function request({method, url, data, params, pathParams, headers, isFileUp
         const response = await instance(axiosConfig);
         // console.log(123, response);
         // 可以根据需求对返回的数据进行处理（例如统一格式化）
-        if (200 <= response.status < 300) {
+        if (200 <= response.status && response.status < 300) {
             // 假设所有响应都包含一个 `data` 字段
+            return {
+                success: true,
+                data: response.data,
+            };
+        } else if (response.status === 201) {
+            // 处理201 Created响应
             return {
                 success: true,
                 data: response.data,
@@ -127,6 +155,19 @@ const apiConfig = {
         method: 'GET',
         url: '/api/user/users/me',
         isFileUpload: false,
+    },
+    register: {
+        method: 'POST',
+        url: '/api/auth/register/',
+        isFileUpload: true,
+        fileKey: 'avatar',
+        requiresAuth: false
+    },
+    login: {
+        method: 'POST',
+        url: '/api/auth/login/',
+        isFileUpload: false,
+        requiresAuth: false
     },
     // 文件上传API
     uploadFile: {
@@ -221,11 +262,17 @@ const apiConfig = {
     url: '/api/tags/:id',
     requiresAuth: true
   },
-  deleteTag: {
-    method: 'DELETE',
-    url: '/api/tags/:id',
-    requiresAuth: true
-  }
+    deleteTag: {
+        method: 'DELETE',
+        url: '/api/tags/:id',
+        requiresAuth: true
+    },
+    refreshToken: {
+        method: 'POST',
+        url: '/api/auth/refresh/',
+        isFileUpload: false,
+        requiresAuth: false
+    }
 };
 
 // 生成 API 请求函数
@@ -264,5 +311,8 @@ function createApiMethods(config) {
 
 // 通过配置自动生成所有 API 方法
 const apiService = createApiMethods(apiConfig);
+
+// 将apiService挂载到instance上以便拦截器使用
+instance.apiService = apiService;
 
 export default apiService;

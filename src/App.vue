@@ -1,4 +1,3 @@
-<!-- 代码已包含 CSS：使用 TailwindCSS , 安装 TailwindCSS 后方可看到布局样式效果 -->
 <template>
     <div class="min-h-screen bg-gray-50">
         <!-- 顶部导航 -->
@@ -36,8 +35,8 @@
                                 <p class="text-sm text-gray-500">{{ user.email }}</p>
                               </div>
                             </div>
-                            <div class="text-sm"><span class="text-gray-500">公司：</span>{{ user.company || '未设置' }}</div>
-                            <div class="text-sm"><span class="text-gray-500">职位：</span>{{ user.position || '未设置' }}</div>
+                            <div class="text-sm"><span class="text-gray-500">手机：</span>{{ user.mobile || '未设置' }}</div>
+                            <div class="text-sm"><span class="text-gray-500">邮箱：</span>{{ user.email || '未设置' }}</div>
                             <button @click="logout" class="w-full mt-2 text-red-500 hover:bg-red-50 p-2 rounded text-sm">
                               退出登录
                             </button>
@@ -94,9 +93,10 @@
         </div>
     </div>
 
-
-
+    <!-- 添加AuthModal组件 -->
+    <AuthModal ref="authModal" />
 </template>
+
 <script lang="ts" setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useStore } from 'vuex';
@@ -107,6 +107,7 @@ import Strategy from './views/Strategy.vue';
 import Tags from './views/Tags.vue';
 import HomePage from './views/HomePage.vue';
 import FloatContact from './components/FloatContact.vue';
+import AuthModal from './components/AuthModal.vue';
 
 const avatarUrl = 'https://ai-public.mastergo.com/ai/img_res/9099b9d9c052e912f4fb1f438e5b117b.jpg';
 
@@ -114,6 +115,7 @@ const store = useStore();
 const currentMenu = ref('compress');
 const showUserMenu = ref(false);
 const user = computed(() => store.state.user);
+const authModal = ref();
 
 const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value;
@@ -122,13 +124,13 @@ const toggleUserMenu = () => {
 const logout = () => {
   store.commit('clearUser');
   showUserMenu.value = false;
-  // 这里可以添加跳转到首页的逻辑
 };
 
 const openLoginModal = () => {
   showUserMenu.value = false;
-  // 这里可以触发登录弹窗显示
+  authModal.value?.show();
 };
+
 const menuItems = [
     { id: 'compress', name: '智能解压缩', icon: 'fas fa-compress-arrows-alt' },
     { id: 'cloud', name: '网盘中心', icon: 'fas fa-cloud' },
@@ -138,9 +140,6 @@ const menuItems = [
     { id: 'settings', name: '系统设置', icon: 'fas fa-cog' },
 ];
 
-
-
-// 点击外部关闭弹窗
 const handleClickOutside = (event) => {
   const userMenu = event.target.closest('.relative');
   if (!userMenu && showUserMenu.value) {
@@ -156,10 +155,9 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
 
-// 初始化时设置当前菜单为网盘中心
 currentMenu.value = 'cloud';
-
 </script>
+
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {

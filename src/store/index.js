@@ -1,26 +1,29 @@
-import { createStore } from 'vuex';
+import { createStore } from 'vuex'
 
 export default createStore({
   state: {
-    user: JSON.parse(localStorage.getItem('user')) || null,
-    token: localStorage.getItem('token') || null
+    user: null,
+    accessToken: localStorage.getItem('access') || null,
+    refreshToken: localStorage.getItem('refresh') || null
   },
   mutations: {
-    setUser(state, { user, token }) {
-      state.user = user
-      state.token = token
-      localStorage.setItem('user', JSON.stringify(user))
-      localStorage.setItem('token', token)
+    setUser(state, payload) {
+      state.user = payload.user
+      state.accessToken = payload.token
+      state.refreshToken = payload.refreshToken
+      localStorage.setItem('access', payload.token)
+      localStorage.setItem('refresh', payload.refreshToken)
     },
     clearUser(state) {
       state.user = null
-      state.token = null
-      localStorage.removeItem('user')
-      localStorage.removeItem('token')
+      state.accessToken = null
+      state.refreshToken = null
+      localStorage.removeItem('access')
+      localStorage.removeItem('refresh')
     }
   },
   getters: {
-    isAuthenticated: state => !!state.token,
+    isAuthenticated: state => !!state.accessToken,
     currentUser: state => state.user
   }
-});
+})
