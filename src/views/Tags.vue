@@ -459,8 +459,8 @@ const submitForm = async () => {
       // 创建标签
       const result = await apiService.createTag(form)
       if (result.success) {
-        tags.value.unshift(result.data)
         showToast('标签创建成功')
+        await fetchTags() // Refresh the entire tag list
       } else {
         showToast(result.error || '创建失败', 'error')
       }
