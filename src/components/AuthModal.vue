@@ -280,11 +280,16 @@ const handleLogin = async () => {
     )
     if (res.success) {
       // 处理注册成功响应
-      const userData = res.data.user || res.data;
+      // Handle both possible response formats
+      const responseData = res.data || res;
+      const userData = responseData.user || {
+        username: loginForm.value.username
+      };
+      
       store.commit('setUser', {
         user: userData,
-        token: userData.token?.access || '',
-        refreshToken: userData.token?.refresh || ''
+        token: responseData.access,
+        refreshToken: responseData.refresh
       });
       visible.value = false
       showMessage('success', '登录成功')

@@ -8,11 +8,13 @@ const instance = axios.create({
 
 // 获取当前登录的用户信息
 function getAccess() {
-    return store.state.accessToken;
+    // Try localStorage first, then Vuex store
+    return localStorage.getItem('access') || store.state.accessToken;
 }
 
 function getRefresh() {
-    return store.state.refreshToken;
+    // Try localStorage first, then Vuex store
+    return localStorage.getItem('refresh') || store.state.refreshToken;
 }
 
 
@@ -28,14 +30,18 @@ instance.interceptors.request.use(
                 const refreshToken = getRefresh();
                 if (refreshToken) {
                     try {
-                        const res = await instance.apiService.refreshToken({ refresh: refreshToken });
-                        if (res.success) {
-                            const { access } = res.data;
-                            store.commit('setUser', {
-                              user: store.state.user,
-                              token: access,
-                              refreshToken: store.state.refreshToken
-                            });
+                const res = await axios({
+                    method: 'POST',
+                    url: '/api/auth/refresh/',
+                    data: { refresh: refreshToken }
+                });
+                if (res.data && res.data.access) {
+                    const { access } = res.data;
+                    store.commit('setUser', {
+                        user: store.state.user,
+                        token: access,
+                        refreshToken: refreshToken // Keep same refresh token
+                    });
                             config.headers['Authorization'] = `Bearer ${access}`;
                             return config;
                         }
@@ -249,12 +255,12 @@ const apiConfig = {
   // 标签管理API
   getTags: {
     method: 'GET',
-    url: '/api/tags',
+    url: '/api/tags/',
     requiresAuth: true
   },
   createTag: {
     method: 'POST',
-    url: '/api/tags',
+    url: '/api/tags/',
     requiresAuth: true
   },
   updateTag: {
@@ -262,11 +268,11 @@ const apiConfig = {
     url: '/api/tags/:id',
     requiresAuth: true
   },
-    deleteTag: {
-        method: 'DELETE',
-        url: '/api/tags/:id',
-        requiresAuth: true
-    },
+  deleteTag: {
+    method: 'DELETE',
+    url: '/api/tags/:id',
+    requiresAuth: true
+  },
     refreshToken: {
         method: 'POST',
         url: '/api/auth/refresh/',

@@ -20,7 +20,7 @@ from rest_framework_simplejwt.views import TokenVerifyView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('tag_manager.urls')),
+    path('api/tags/', include('tag_manager.urls')),
     path('api/auth/', include('account.urls')),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 ]
