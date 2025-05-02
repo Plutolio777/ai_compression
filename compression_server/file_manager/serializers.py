@@ -3,7 +3,18 @@ from .models import File, FileTag
 from tag_manager.serializers import TagSerializer
 
 class FileSerializer(serializers.ModelSerializer):
-    tags = TagSerializer(many=True, read_only=True)
+    tags = serializers.SerializerMethodField()
+
+    def get_tags(self, obj):
+        return [
+            {
+                'id': tag.id,
+                'name': tag.name,
+                'color': tag.color,
+                'importance': tag.importance
+            }
+            for tag in obj.tags.all()
+        ]
     file_type_display = serializers.CharField(source='get_file_type_display', read_only=True)
     storage_type_display = serializers.CharField(source='get_storage_type_display', read_only=True)
     modified_time = serializers.SerializerMethodField()

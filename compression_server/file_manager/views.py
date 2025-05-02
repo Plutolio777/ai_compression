@@ -105,6 +105,15 @@ class FileViewSet(viewsets.ModelViewSet):
                 'important': important_tags.exists(),
                 'importance': importance_level,
                 'cold': file.tags.filter(name='cold').exists(),
+                'tags': [
+                    {
+                        'id': tag.id,
+                        'name': tag.name,
+                        'color': tag.color,
+                        'importance': tag.importance
+                    }
+                    for tag in file.tags.all()
+                ],
                 'children': []
             }
             if file.file_type == 'folder':
@@ -119,6 +128,15 @@ class FileViewSet(viewsets.ModelViewSet):
                     'important': child.tags.filter(importance__gte=2).exists(),
                     'importance': child.tags.filter(importance__gte=2).first().importance if child.tags.filter(importance__gte=2).exists() else 1,
                     'cold': child.tags.filter(name='cold').exists(),
+                    'tags': [
+                        {
+                            'id': tag.id,
+                            'name': tag.name,
+                            'color': tag.color,
+                            'importance': tag.importance
+                        }
+                        for tag in child.tags.all()
+                    ],
                     'children': []  # 前端需要时再请求下一级
                 } for child in children]
             result.append(node)

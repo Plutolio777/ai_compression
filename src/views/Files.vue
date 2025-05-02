@@ -104,16 +104,60 @@
                             </div>
                             <div class="col-span-2 text-gray-500">{{ file.size }}</div>
                             <div class="col-span-2 text-gray-500">{{ file.modifiedTime }}</div>
-                            <div class="col-span-2 flex flex-wrap gap-1">
-                                <span v-if="file.important"
-                                    class="px-2 py-1 text-xs bg-red-100 text-red-600 rounded">重要</span>
-                                <span v-if="file.cold"
-                                    class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">冷数据</span>
-                                <template v-for="tag in file.tags" :key="tag">
-                                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded">
-                                        {{ tag }}
+                            <div class="col-span-2 flex flex-wrap gap-1 min-w-[120px]">
+                                <div class="group relative inline-block">
+                                    <div class="flex flex-wrap gap-1 items-center">
+                                <template v-for="(tag, index) in file.tags.slice(0, 3)" :key="tag.id">
+                                    <span 
+                                        class="px-2 py-1 text-xs rounded flex items-center whitespace-nowrap"
+                                        :style="{
+                                            backgroundColor: getTagColor(tag.importance) + '20', 
+                                            color: getTagColor(tag.importance),
+                                            border: `1px solid ${getTagColor(tag.importance)}`
+                                        }"
+                                    >
+                                        {{ tag.name }}
+                                        <button 
+                                            v-if="selectedFiles.includes(file.id)"
+                                            @click.stop="removeTag(file.id, tag.id)"
+                                            class="ml-1 text-gray-500 hover:text-red-500"
+                                        >
+                                            <i class="fas fa-times text-xs"></i>
+                                        </button>
                                     </span>
                                 </template>
+                                <span 
+                                    class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded"
+                                >
+                                    +{{ file.tags.length - 3 }}
+                                </span>
+                                    </div>
+                                    <div 
+                                        v-if="file.tags.length > 0"
+                                        class="absolute z-10 hidden group-hover:block bg-white shadow-lg rounded-md p-2 mt-1 min-w-max"
+                                    >
+                                        <div class="flex flex-wrap gap-1">
+                                            <template v-for="tag in file.tags" :key="tag.id">
+                                                <span 
+                                                    class="px-2 py-1 text-xs rounded"
+                                                    :style="{
+                                                        backgroundColor: getTagColor(tag.importance) + '20', 
+                                                        color: getTagColor(tag.importance)
+                                                    }"
+                                                >
+                                                    {{ tag.name }}
+                                                    <button 
+                                                        v-if="selectedFiles.includes(file.id)"
+                                                        @click.stop="removeTag(file.id, tag.id)"
+                                                        class="ml-1 text-gray-500 hover:text-red-500"
+                                                    >
+                                                        <i class="fas fa-times text-xs"></i>
+                                                    </button>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -651,6 +695,29 @@ const handleCreateFolderSuccess = () => {
 };
 
 // 处理标签更新
+const handleRemoveTag = async (fileId, tagId) => {
+  try {
+    const response = await apiService.removeFileTag(
+      { tag_id: tagId },
+      {},
+      { id: fileId }
+    );
+    if (response.success) {
+      // 更新本地标签数据
+      if (fileTags.value[fileId]) {
+        fileTags.value[fileId] = fileTags.value[fileId].filter(tag => tag.id !== tagId);
+      }
+      // 更新文件列表中的标签显示
+      const fileIndex = files.value.findIndex(f => f.id === fileId);
+      if (fileIndex !== -1) {
+        files.value[fileIndex].tags = files.value[fileIndex].tags.filter(tag => tag.id !== tagId);
+      }
+    }
+  } catch (error) {
+    console.error('删除标签失败:', error);
+  }
+};
+
 const handleUpdateTags = async (tags) => {
   try {
     const response = await apiService.updateFileTags(
@@ -700,6 +767,37 @@ const resetToRoot = () => {
   setTimeout(fetchFiles, 0);
 };
 
+const getTagColor = (importance) => {
+  // 根据重要性返回不同颜色
+  return importance === 1 ? '#4CAF50' :  // 低 - 绿色
+         importance === 2 ? '#FFC107' :  // 中 - 黄色
+         '#F44336';                      // 高 - 红色
+};
+
+const removeTag = async (fileId, tagId) => {
+  try {
+    const response = await apiService.removeTag(
+      {},
+      {},
+      { id: fileId, tag_id: tagId }
+    );
+    if (response.success) {
+      // 更新本地文件标签数据
+      const fileIndex = files.value.findIndex(f => f.id === fileId);
+      if (fileIndex !== -1) {
+        files.value[fileIndex].tags = files.value[fileIndex].tags.filter(
+          tag => tag.id !== tagId
+        );
+      }
+      showToast('标签删除成功');
+    } else {
+      showToast(response.error || '删除标签失败', 'error');
+    }
+  } catch (error) {
+    showToast('删除标签出错: ' + error.message, 'error');
+  }
+};
+
 const handleAddTagClick = (e) => {
   e.stopPropagation();
   console.log('点击添加标签，当前文件:', contextMenuFile.value);
@@ -707,6 +805,19 @@ const handleAddTagClick = (e) => {
     openTagModal(contextMenuFile.value);
     showMenu.value = false; // 关闭右键菜单
   }
+};
+
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const toast = document.createElement('div');
+  toast.className = `fixed top-4 right-4 px-4 py-2 rounded-md shadow-lg text-white ${
+    type === 'success' ? 'bg-green-500' : 'bg-red-500'
+  }`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
 };
 
 const closeContextMenu = (event: MouseEvent) => {
