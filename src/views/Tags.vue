@@ -22,6 +22,48 @@
             </svg>
           </div>
           
+          <!-- 重要性筛选 -->
+          <div class="relative importance-select-container">
+            <div 
+              @click.stop="toggleImportanceSelect"
+              class="w-40 pl-3 pr-10 py-[0.25rem] border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 flex items-center cursor-pointer text-xs"
+            >
+              <span class="text-sm text-gray-600 flex-grow">
+                {{ selectedImportance ? 
+                  (selectedImportance === '1' ? '低' : 
+                   selectedImportance === '2' ? '中' : '高') : 
+                  '重要性筛选' }}
+              </span>
+              <svg 
+                v-if="selectedImportance"
+                @click.stop="selectedImportance = ''"
+                class="absolute right-8 h-4 w-4 text-gray-400 hover:text-gray-600"
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <svg class="absolute right-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            <div 
+              v-if="showImportanceSelect"
+              class="absolute z-10 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 p-2"
+            >
+              <div 
+                v-for="option in importanceOptions"
+                :key="option.value"
+                @click="selectedImportance = option.value; showImportanceSelect = false"
+                class="px-3 py-1 text-sm hover:bg-gray-50 cursor-pointer"
+              >
+                {{ option.label }}
+              </div>
+            </div>
+          </div>
+
           <!-- 颜色搜索 -->
           <div class="relative color-picker-container">
             <div 
@@ -95,6 +137,9 @@
                 <th scope="col" class="px-4 py-3 text-left text-sm font-medium text-gray-700">
                   标签名称
                 </th>
+                <th scope="col" class="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  重要性
+                </th>
                 <th scope="col" class="px-4 py-3 text-left text-sm font-medium text-gray-700 hidden md:table-cell">
                   描述
                 </th>
@@ -111,7 +156,7 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr v-if="tags.length === 0">
-                <td colspan="5" class="px-4 py-12 text-center">
+                <td colspan="6" class="px-4 py-12 text-center">
                   <div class="flex flex-col items-center justify-center space-y-2">
                     <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -129,6 +174,18 @@
                     ></span>
                     {{ row.name }}
                   </div>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span 
+                    class="px-2 py-1 rounded-full text-xs font-medium"
+                    :class="{
+                      'bg-green-100 text-green-800': row.importance === 1,
+                      'bg-yellow-100 text-yellow-800': row.importance === 2,
+                      'bg-red-100 text-red-800': row.importance === 3
+                    }"
+                  >
+                    {{ row.importance === 1 ? '低' : row.importance === 2 ? '中' : '高' }}
+                  </span>
                 </td>
                 <td class="px-4 py-3 text-gray-500 hidden md:table-cell max-w-[200px]">
                   <div 
@@ -256,6 +313,26 @@
             </div>
             
             <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">重要性</label>
+              <div class="flex space-x-2">
+                <button
+                  v-for="level in [1, 2, 3]"
+                  :key="level"
+                  @click="form.importance = level"
+                  class="px-3 py-1 rounded-md text-sm"
+                  :class="{
+                    'bg-green-100 text-green-800 border border-green-300': form.importance === level && level === 1,
+                    'bg-yellow-100 text-yellow-800 border border-yellow-300': form.importance === level && level === 2,
+                    'bg-red-100 text-red-800 border border-red-300': form.importance === level && level === 3,
+                    'bg-gray-100 text-gray-500': form.importance !== level
+                  }"
+                >
+                  {{ level === 1 ? '低' : level === 2 ? '中' : '高' }}
+                </button>
+              </div>
+            </div>
+
+            <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">标签颜色</label>
               <div class="grid grid-cols-6 gap-2">
                 <div
@@ -337,6 +414,7 @@ interface Tag {
   name: string
   description: string
   color: string
+  importance: number
   fileCount: number
   created_at: string
 }
@@ -348,11 +426,21 @@ const colorOptions = [
   '#F5B7B1', '#AED6F1'
 ]
 
+// 重要性选项
+const importanceOptions = [
+  { value: '', label: '全部重要性' },
+  { value: '1', label: '低' },
+  { value: '2', label: '中' },
+  { value: '3', label: '高' }
+]
+
 // 状态管理
 const tags = ref<Tag[]>([])
 const searchQuery = ref('')
 const selectedColor = ref('')
+const selectedImportance = ref('')
 const showColorPicker = ref(false)
+const showImportanceSelect = ref(false)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const tooltipVisible = ref(false)
@@ -368,8 +456,28 @@ const closeColorPicker = (e: MouseEvent) => {
   }
 }
 
+// 点击外部关闭重要性选择器
+const closeImportanceSelect = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (!target.closest('.importance-select-container')) {
+    showImportanceSelect.value = false
+    document.removeEventListener('click', closeImportanceSelect)
+  }
+}
+
+const toggleImportanceSelect = () => {
+  showImportanceSelect.value = !showImportanceSelect.value
+  showColorPicker.value = false
+  if (showImportanceSelect.value) {
+    setTimeout(() => {
+      document.addEventListener('click', closeImportanceSelect)
+    }, 0)
+  }
+}
+
 const toggleColorPicker = () => {
   showColorPicker.value = !showColorPicker.value
+  showImportanceSelect.value = false
   if (showColorPicker.value) {
     setTimeout(() => {
       document.addEventListener('click', closeColorPicker)
@@ -387,7 +495,8 @@ const form = reactive({
   id: '',
   name: '',
   description: '',
-  color: colorOptions[0]
+  color: colorOptions[0],
+  importance: 1
 })
 
 // 方法
@@ -532,7 +641,8 @@ const fetchTags = async () => {
       page: pagination.page,
       page_size: pagination.pageSize,
       name: searchQuery.value || undefined,  // 传递搜索参数，空时不传
-      color: selectedColor.value || undefined // 传递颜色参数，空时不传
+      color: selectedColor.value || undefined, // 传递颜色参数，空时不传
+      importance: selectedImportance.value || undefined // 传递重要性参数，空时不传
     }
     
     // 移除值为undefined的参数
@@ -557,7 +667,7 @@ const fetchTags = async () => {
 watch(() => pagination.page, fetchTags)
 
 // 监听搜索条件变化
-watch([searchQuery, selectedColor], () => {
+watch([searchQuery, selectedColor, selectedImportance], () => {
   pagination.page = 1 // 重置到第一页
   fetchTags()
 })

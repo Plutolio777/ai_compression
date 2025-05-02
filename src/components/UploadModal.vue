@@ -1,4 +1,4 @@
-<template>
+  <template>
   <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl">
       <!-- 头部 -->
@@ -219,49 +219,56 @@ const startUpload = async () => {
   emit('upload-success')
 }
 
-const uploadFile = async (file: UploadFile) => {
-  // 演示模式 - 模拟上传进度
-  if (import.meta.env.MODE === 'development') {
-    return new Promise((resolve) => {
-      const interval = setInterval(() => {
-        file.progress += 10
-        if (file.progress >= 100) {
-          clearInterval(interval)
-          resolve({})
+    const getParentId = async () => {
+      if (props.currentPath.length === 0) return null
+      
+      try {
+        const response = await apiService.getFileTree({
+          path: props.currentPath.join('/')
+        })
+        if (response.success && response.data.length > 0) {
+          return response.data[0].id
         }
-      }, 300)
-    })
-  }
-
-  /* 正式API调用代码 (保留但暂时注释)
-  try {
-    const response = await apiService.uploadFile(
-      {
-        file: file.file,
-        path: props.currentPath.join('/')
-      },
-      {}, // query params
-      {}, // path params
-      {}, // headers
-      {
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            file.progress = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            )
-          }
-        }
+      } catch (error) {
+        console.error('获取父目录ID失败:', error)
       }
-    )
-    
-    if (!response.success) {
-      throw new Error(response.error || '上传失败')
+      return null
     }
-    return response.data
-  } catch (error) {
-    console.error('上传失败:', error)
-    throw error
-  }
-  */
+
+    const uploadFile = async (file: UploadFile) => {
+        const parentId = await getParentId()
+        
+        try {
+            const response = await apiService.uploadFile(
+                {
+                    file: file.file,
+                    parent_id: parentId
+                },
+                {}, // query params
+                {}, // path params
+                {}, // headers
+                {
+                    onUploadProgress: (progressEvent) => {
+                        if (progressEvent.total) {
+                            file.progress = Math.round(
+                                (progressEvent.loaded * 100) / progressEvent.total
+                            )
+                        }
+                    }
+                }
+            )
+            
+            if (!response.success) {
+                const errorMsg = response.error || '上传失败'
+                showToast(errorMsg, 'error')
+                throw new Error(errorMsg)
+            }
+            return response.data
+        } catch (error) {
+            const errorMsg = error.response?.data?.error || error.message || '上传失败'
+            showToast(errorMsg, 'error')
+            console.error('上传失败:', error)
+            throw error
+        }
 }
 </script>

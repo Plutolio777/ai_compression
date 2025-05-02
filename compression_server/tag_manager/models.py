@@ -2,6 +2,12 @@ from django.db import models
 from django.core.validators import MinLengthValidator, RegexValidator
 
 class Tag(models.Model):
+    IMPORTANCE_CHOICES = [
+        (1, '低'),
+        (2, '中'), 
+        (3, '高')
+    ]
+    
     name = models.CharField(
         max_length=20,
         validators=[
@@ -18,6 +24,11 @@ class Tag(models.Model):
                 message='颜色格式必须为#FFFFFF或#FFF'
             )
         ]
+    )
+    importance = models.IntegerField(
+        choices=IMPORTANCE_CHOICES,
+        default=1,
+        verbose_name='重要性'
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -42,12 +42,12 @@
         <div class="flex-1 p-6">
             <!-- 面包屑导航 -->
             <div class="mb-4 flex items-center space-x-2 text-sm text-gray-600">
-                <button class="hover:text-blue-500" @click="currentPath = []">
+                <button class="hover:text-blue-500" @click="resetToRoot">
                     <i class="fas fa-home"></i>
                 </button>
-                <button v-if="currentPath.length > 0" 
+                <button v-if="currentPath.length > 0"
                     class="hover:text-blue-500 ml-2" 
-                    @click="currentPath = currentPath.slice(0, -1)">
+                    @click="returnToLastLevel">
                     <i class="fas fa-arrow-left"></i>
                 </button>
                 <template v-for="(folder, index) in currentPath" :key="index">
@@ -59,28 +59,29 @@
             </div>
             <!-- 网格视图 -->
             <div v-if="viewMode === 'grid'" class="grid grid-cols-6 gap-4">
-                    <div v-for="file in filteredFiles" :key="file.id"
+                <template v-if="files.length > 0">
+                    <div v-for="file in files" :key="file.id"
                         class="relative group bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                         :class="{ 'ring-2 ring-blue-500': selectedFiles.includes(file.id) }"
                         @click="toggleFileSelection(file.id)" 
                         @dblclick="handleFileDoubleClick(file)"
                         @contextmenu.prevent="showContextMenu($event, file)">
-                    <div class="flex flex-col items-center">
-                        <div class="w-16 h-16 mb-2 flex items-center justify-center">
-                            <i :class="getFileIcon(file.type)" class="text-4xl"
-                                :style="{ color: getFileColor(file.type) }"></i>
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-16 mb-2 flex items-center justify-center">
+                                <i :class="getFileIcon(file.type)" class="text-4xl"
+                                    :style="{ color: getFileColor(file.type) }"></i>
+                            </div>
+                            <p class="text-sm text-center font-medium truncate w-full">{{ file.name }}</p>
+                            <p class="text-xs text-gray-500">{{ file.size }}</p>
                         </div>
-                        <p class="text-sm text-center font-medium truncate w-full">{{ file.name }}</p>
-                        <p class="text-xs text-gray-500">{{ file.size }}</p>
                     </div>
-                    <div class="absolute top-2 right-2 flex space-x-1">
-                        <span v-if="file.important"
-                            class="px-1.5 py-0.5 text-xs bg-red-100 text-red-600 rounded">重要</span>
-                        <span v-if="file.cold"
-                            class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">冷数据</span>
-                    </div>
+                </template>
+                <div v-else class="col-span-6 py-16 text-center">
+                    <i class="fas fa-folder-open text-4xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-500">暂无数据</p>
                 </div>
             </div>
+
             <!-- 列表视图 -->
             <div v-else class="bg-white rounded-lg shadow-sm">
                 <div class="grid grid-cols-12 gap-4 p-4 text-sm font-medium text-gray-600 border-b">
@@ -90,24 +91,30 @@
                     <div class="col-span-2">标签</div>
                 </div>
                 <div class="divide-y">
-                    <div v-for="file in filteredFiles" :key="file.id"
-                        class="grid grid-cols-12 gap-4 p-4 hover:bg-gray-50 cursor-pointer items-center"
-                        :class="{ 'bg-blue-50': selectedFiles.includes(file.id) }" 
-                        @click="toggleFileSelection(file.id)"
-                        @dblclick="handleFileDoubleClick(file)"
-                        @contextmenu.prevent="showContextMenu($event, file)">
-                        <div class="col-span-6 flex items-center space-x-3">
-                            <i :class="getFileIcon(file.type)" :style="{ color: getFileColor(file.type) }"></i>
-                            <span>{{ file.name }}</span>
+                    <template v-if="files.length > 0">
+                        <div v-for="file in files" :key="file.id"
+                            class="grid grid-cols-12 gap-4 p-4 hover:bg-gray-50 cursor-pointer items-center"
+                            :class="{ 'bg-blue-50': selectedFiles.includes(file.id) }" 
+                            @click="toggleFileSelection(file.id)"
+                            @dblclick="handleFileDoubleClick(file)"
+                            @contextmenu.prevent="showContextMenu($event, file)">
+                            <div class="col-span-6 flex items-center space-x-3">
+                                <i :class="getFileIcon(file.type)" :style="{ color: getFileColor(file.type) }"></i>
+                                <span>{{ file.name }}</span>
+                            </div>
+                            <div class="col-span-2 text-gray-500">{{ file.size }}</div>
+                            <div class="col-span-2 text-gray-500">{{ file.modifiedTime }}</div>
+                            <div class="col-span-2 flex space-x-2">
+                                <span v-if="file.important"
+                                    class="px-2 py-1 text-xs bg-red-100 text-red-600 rounded">重要</span>
+                                <span v-if="file.cold"
+                                    class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">冷数据</span>
+                            </div>
                         </div>
-                        <div class="col-span-2 text-gray-500">{{ file.size }}</div>
-                        <div class="col-span-2 text-gray-500">{{ file.modifiedTime }}</div>
-                        <div class="col-span-2 flex space-x-2">
-                            <span v-if="file.important"
-                                class="px-2 py-1 text-xs bg-red-100 text-red-600 rounded">重要</span>
-                            <span v-if="file.cold"
-                                class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">冷数据</span>
-                        </div>
+                    </template>
+                    <div v-else class="py-16 text-center">
+                        <i class="fas fa-folder-open text-4xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-500">暂无数据</p>
                     </div>
                 </div>
             </div>
@@ -222,13 +229,14 @@
     <CreateFolderModal
       v-if="showCreateFolderModal"
       :show="showCreateFolderModal"
-      :current-path="currentPath"
+      :parent-id="idStack.length > 0 ? idStack[idStack.length - 1] : null"
       @close="showCreateFolderModal = false"
       @create-success="handleCreateFolderSuccess"
     />
 </template>
 <script lang="ts" setup>
-import { ref, onUnmounted, reactive, computed } from 'vue';
+console.log(111111111111111111)
+import { ref, onMounted, onUnmounted, reactive, computed, nextTick } from 'vue';
 import UploadModal from '../components/UploadModal.vue';
 import CreateFolderModal from '../components/CreateFolderModal.vue';
 import apiService from '../api/apiService';
@@ -238,127 +246,72 @@ const showCreateFolderModal = ref(false);
 // 网盘功能相关数据
 const viewMode = ref<'grid' | 'list'>('grid');
 const searchQuery = ref('');
-const currentPath = ref<string[]>([]);
+// 使用更可靠的ref初始化方式
+const currentPath = ref([])
+console.log(currentPath.value.length)
+const idStack = ref([])
+// 确保初始化时加载根目录
+
 const selectedFiles = ref<number[]>([]);
 const showMenu = ref(false);
 const menuPosition = ref({ x: 0, y: 0 });
-const files = ref([
-    {
-        id: 1,
-        name: '项目文档',
-        type: 'folder',
-        size: '-',
-        modifiedTime: '2024-02-20 15:30',
-        important: false,
-        cold: false,
-        children: [
-            {
-                id: 8,
-                name: '需求文档.docx',
-                type: 'doc',
-                size: '1.2MB',
-                modifiedTime: '2024-02-19 10:30',
-                important: true,
-                cold: false
-            },
-            {
-                id: 9,
-                name: '设计稿',
-                type: 'folder',
-                size: '-',
-                modifiedTime: '2024-02-18 14:20',
-                important: false,
-                cold: false,
-                children: [
-                    {
-                        id: 10,
-                        name: 'UI设计.psd',
-                        type: 'image',
-                        size: '8.5MB',
-                        modifiedTime: '2024-02-17 16:45',
-                        important: false,
-                        cold: false
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        id: 2,
-        name: '设计资源',
-        type: 'folder',
-        size: '-',
-        modifiedTime: '2024-02-19 09:45',
-        important: false,
-        cold: false,
-        children: [
-            {
-                id: 11,
-                name: '图标集.zip',
-                type: 'archive',
-                size: '45MB',
-                modifiedTime: '2024-02-18 11:15',
-                important: false,
-                cold: true
-            }
-        ]
-    },
-    {
-        id: 3,
-        name: '项目方案.docx',
-        type: 'doc',
-        size: '2.5MB',
-        modifiedTime: '2024-02-20 15:30',
-        important: true,
-        cold: false
-    },
-    {
-        id: 4,
-        name: '产品设计稿.psd',
-        type: 'image',
-        size: '15MB',
-        modifiedTime: '2024-02-19 09:45',
-        important: false,
-        cold: false
-    },
-    {
-        id: 5,
-        name: '演示视频.mp4',
-        type: 'video',
-        size: '256MB',
-        modifiedTime: '2024-02-18 16:20',
-        important: false,
-        cold: true
-    },
-    {
-        id: 6,
-        name: '源代码备份.zip',
-        type: 'archive',
-        size: '128MB',
-        modifiedTime: '2024-02-17 11:15',
-        important: true,
-        cold: false
-    },
-    {
-        id: 7,
-        name: '会议记录.pdf',
-        type: 'pdf',
-        size: '1.2MB',
-        modifiedTime: '2024-02-16 14:50',
-        important: false,
-        cold: true
+const files = ref([]);
+
+// 获取文件列表
+const fetchFiles = async () => {
+    try {
+    const parentId = idStack.value.length > 0 ? 
+        idStack.value[idStack.value.length - 1] : null;
+    
+    const response = await apiService.getFileTree(
+        {}, // 请求体数据
+        {parent_id: parentId} // 查询参数
+    );
+    if (response.success) {
+        console.log('获取到的文件数据:', response.data);
+        files.value = Array.isArray(response.data) ? response.data : [];
+        console.log('currentPath:', currentPath.value);
+        console.log('files:', files.value);
     }
-]);
+    } catch (error) {
+    console.error('获取文件列表失败:', error);
+    }
+};
+
+// 初始化加载文件列表
+onMounted(() => {
+  fetchFiles();
+});
+const returnToLastLevel = () => {
+    currentPath.value = currentPath.value.slice(0, -1);
+    idStack.value = idStack.value.slice(0, -1);
+    selectedFiles.value = [];
+    fetchFiles();
+}
 const getCurrentLevelFiles = () => {
-    let currentFiles = files.value;
+    console.log('getCurrentLevelFiles - currentPath:', currentPath.value);
+    console.log('getCurrentLevelFiles - files:', files.value);
+    
+    if (!Array.isArray(files.value)) return [];
+    
+    let currentFiles = [...files.value];
+    
     for (const folderName of currentPath.value) {
-        const folder = currentFiles.find(f => f.type === 'folder' && f.name === folderName);
-        if (folder && folder.children) {
-            currentFiles = folder.children;
-        } else {
+        const folder = currentFiles.find(f => 
+            f.type === 'folder' && 
+            f.name === folderName && 
+            Array.isArray(f.children)
+        );
+        
+        if (!folder) {
+            console.warn(`找不到文件夹: ${folderName}`);
             return [];
         }
+        
+        currentFiles = [...folder.children];
+        console.log(`进入文件夹 ${folderName} 后的文件列表:`, currentFiles);
     }
+    
     return currentFiles;
 };
 
@@ -497,22 +450,31 @@ const showContextMenu = (event: MouseEvent, file: any) => {
 };
 const navigateTo = (index: number) => {
     currentPath.value = currentPath.value.slice(0, index + 1);
+    idStack.value = idStack.value.slice(0, index + 1);
+    selectedFiles.value = [];
+    fetchFiles(); // 路径切换时刷新文件列表
 };
 
-const handleFileDoubleClick = (file: any) => {
+const handleFileDoubleClick = async (file: any) => {
     if (file.type === 'folder') {
+        console.log('双击文件夹:', file.name);
         currentPath.value = [...currentPath.value, file.name];
+        idStack.value = [...idStack.value, file.id];
         selectedFiles.value = [];
+        console.log('currentPath更新为:', currentPath.value);
+        await fetchFiles(); // 确保先完成文件加载
+        console.log('currentPath after update:', currentPath.value);
     }
 };
+
 // 点击其他地方关闭右键菜单
 const handleUploadSuccess = () => {
-  refreshFileList();
+  fetchFiles(); // 使用fetchFiles而不是refreshFileList保持一致性
   showUploadModal.value = false;
 };
 
 const handleCreateFolderSuccess = () => {
-  refreshFileList();
+  fetchFiles(); // 使用fetchFiles而不是refreshFileList保持一致性
   showCreateFolderModal.value = false;
 };
 
@@ -537,6 +499,13 @@ const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+const resetToRoot = () => {
+  currentPath.value = [];
+  idStack.value = [];
+  selectedFiles.value = [];
+  setTimeout(fetchFiles, 0);
+};
+
 const closeContextMenu = (event: MouseEvent) => {
     if (showMenu.value) {
         showMenu.value = false;
@@ -546,5 +515,6 @@ onUnmounted(() => {
     window.removeEventListener('click', closeContextMenu);
 });
 window.addEventListener('click', closeContextMenu);
+console.log(currentPath.value.length)
 </script>
 <style scoped></style>

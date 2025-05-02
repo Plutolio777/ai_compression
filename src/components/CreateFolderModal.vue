@@ -50,9 +50,9 @@ import apiService from '@/api/apiService'
 
 const props = defineProps({
   show: Boolean,
-  currentPath: {
-    type: Array as () => string[],
-    default: () => []
+  parentId: {
+    type: Number,
+    default: null
   }
 })
 
@@ -65,6 +65,10 @@ const close = () => {
   folderName.value = ''
   error.value = ''
   emit('close')
+}
+
+const getParentId = () => {
+  return props.parentId
 }
 
 const createFolder = async () => {
@@ -93,9 +97,10 @@ const createFolder = async () => {
   }
 
   try {
+    const parentId = await getParentId()
     const response = await apiService.createFolder({
       name: folderName.value,
-      path: props.currentPath.join('/')
+      parent_id: parentId
     })
     if (response.success) {
       emit('create-success', response.data)

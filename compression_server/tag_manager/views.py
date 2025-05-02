@@ -7,10 +7,11 @@ from .pagination import StandardPagination
 class TagFilter(filters.FilterSet):
     name = filters.CharFilter(lookup_expr='icontains')
     color = filters.CharFilter()
+    importance = filters.NumberFilter()
 
     class Meta:
         model = Tag
-        fields = ['name', 'color']
+        fields = ['name', 'color', 'importance']
 
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all().order_by('-created_at')

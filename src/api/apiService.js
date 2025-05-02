@@ -18,44 +18,92 @@ function getRefresh() {
 }
 
 
-// 添加请求拦截器，判断用户是否登录
+// 刷新token标志和队列
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+// 添加请求拦截器
 instance.interceptors.request.use(
-    async (config) => {
+    (config) => {
         if (config.requiresAuth) {
             const access = getAccess();
             if (access) {
                 config.headers['Authorization'] = `Bearer ${access}`;
-            } else {
-                // 尝试刷新token
-                const refreshToken = getRefresh();
-                if (refreshToken) {
-                    try {
-                const res = await axios({
-                    method: 'POST',
-                    url: '/api/auth/refresh/',
-                    data: { refresh: refreshToken }
-                });
-                if (res.data && res.data.access) {
-                    const { access } = res.data;
-                    store.commit('setUser', {
-                        user: store.state.user,
-                        token: access,
-                        refreshToken: refreshToken // Keep same refresh token
-                    });
-                            config.headers['Authorization'] = `Bearer ${access}`;
-                            return config;
-                        }
-                    } catch (error) {
-                        console.error('刷新token失败:', error);
-                    }
-                }
-                console.error('用户未登录，请先登录');
-                return Promise.reject(new Error('用户未登录'));
             }
         }
         return config;
     },
     (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// 添加响应拦截器
+instance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+        
+        // 处理401错误
+        if (error.response?.status === 401 && originalRequest.requiresAuth) {
+            // 如果已经在刷新token，将请求加入队列
+            if (isRefreshing) {
+                return new Promise((resolve) => {
+                    refreshSubscribers.push(() => {
+                        originalRequest.headers['Authorization'] = `Bearer ${getAccess()}`;
+                        resolve(instance(originalRequest));
+                    });
+                });
+            }
+
+            const refreshToken = getRefresh();
+            if (!refreshToken) {
+                console.error('Refresh token不存在，请重新登录');
+                store.commit('logout');
+                return Promise.reject(error);
+            }
+
+            isRefreshing = true;
+            
+            try {
+                const res = await axios({
+                    method: 'POST',
+                    url: '/api/auth/refresh/',
+                    data: { refresh: refreshToken }
+                });
+
+                if (res.data?.access) {
+                    const { access, refresh } = res.data;
+                    store.commit('setUser', {
+                        user: store.state.user,
+                        token: access,
+                        refreshToken: refresh || refreshToken
+                    });
+                    
+                    // 更新localStorage
+                    if (refresh) {
+                        localStorage.setItem('refresh', refresh);
+                    }
+                    localStorage.setItem('access', access);
+                    
+                    // 更新原始请求头
+                    originalRequest.headers['Authorization'] = `Bearer ${access}`;
+                    
+                    // 执行队列中的请求
+                    refreshSubscribers.forEach(cb => cb());
+                    refreshSubscribers = [];
+                    
+                    return instance(originalRequest);
+                }
+            } catch (refreshError) {
+                console.error('刷新token失败:', refreshError);
+                store.commit('logout');
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
+        }
+        
         return Promise.reject(error);
     }
 );
@@ -156,6 +204,29 @@ async function request({method, url, data, params, pathParams, headers, isFileUp
 
 // 定义 API 配置对象
 const apiConfig = {
+  // 文件管理相关API
+  getFileList: {
+    method: 'GET',
+    url: '/api/files/',
+    requiresAuth: true
+  },
+  getFileTree: {
+    method: 'GET', 
+    url: '/api/files/tree/',
+    requiresAuth: true
+  },
+  uploadFile: {
+    method: 'POST',
+    url: '/api/files/upload/',
+    requiresAuth: true,
+    isFileUpload: true,
+    fileKey: 'file'
+  },
+  createFolder: {
+    method: 'POST',
+    url: '/api/files/create_folder/',
+    requiresAuth: true
+  },
     // 示例：GET 请求
     me: {
         method: 'GET',
@@ -175,28 +246,6 @@ const apiConfig = {
         url: '/api/auth/login/',
         isFileUpload: false,
         requiresAuth: false
-    },
-    // 文件上传API
-    uploadFile: {
-        method: 'POST',
-        url: '/api/files/upload',
-        isFileUpload: true,
-        fileKey: 'file',
-        requiresAuth: true
-    },
-    // 创建文件夹API
-    createFolder: {
-        method: 'POST',
-        url: '/api/files/folders',
-        isFileUpload: false,
-        requiresAuth: true
-    },
-    // 获取文件列表API
-    getFileList: {
-        method: 'GET',
-        url: '/api/files/list',
-        isFileUpload: false,
-        requiresAuth: true
     },
     // 模型配置相关API
     getModelConfig: {
@@ -256,7 +305,12 @@ const apiConfig = {
   // 标签管理API
   getTags: {
     method: 'GET',
-    url: '/api/tags/',
+    url: '/api/tags',
+    requiresAuth: true
+  },
+  getFileTree: {
+    method: 'GET',
+    url: '/api/files/tree',
     requiresAuth: true
   },
   createTag: {
