@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
 from .models import File, FileTag
+from tag_manager.models import Tag
 from .serializers import (
     FileSerializer, 
     FileTagSerializer,
@@ -185,8 +186,11 @@ class FileViewSet(viewsets.ModelViewSet):
             # 添加标签关联
             for tag in tags:
                 FileTag.objects.get_or_create(file=file, tag=tag)
-                tag.update_file_count()
+                tag.file_count = tag.files.count()
+                tag.save()
                 
+            # 重新获取文件数据，包含更新后的标签
+            file.refresh_from_db()
             return Response(
                 FileSerializer(file).data,
                 status=status.HTTP_200_OK
@@ -210,11 +214,19 @@ class FileViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
                 
+            # 验证标签是否存在
+            try:
+                tag = Tag.objects.get(id=tag_id)
+            except Tag.DoesNotExist:
+                return Response(
+                    {'error': '标签不存在'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
             # 移除标签关联
-            FileTag.objects.filter(file=file, tag_id=tag_id).delete()
+            FileTag.objects.filter(file=file, tag=tag).delete()
             
             # 更新标签文件数
-            tag = Tag.objects.get(id=tag_id)
             tag.update_file_count()
             
             return Response(

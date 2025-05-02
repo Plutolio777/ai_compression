@@ -1,61 +1,128 @@
 <template>
-  <div class="tag-selector-modal">
-    <!-- 标签选择器 -->
-    <div class="flex flex-wrap gap-2 mb-2">
-      <span 
-        v-for="tag in selectedTags" 
-        :key="tag.id"
-        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-        :style="{ backgroundColor: tag.color + '20', color: tag.color }"
+  <div class="tag-selector-modal p-4 w-80 bg-white rounded-lg shadow-xl border border-gray-200">
+    <!-- 标题和操作区域 -->
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold text-gray-800">标签管理</h3>
+      <button 
+        @click="emit('close')"
+        class="text-gray-400 hover:text-gray-600 transition-colors"
       >
-        {{ tag.name }}
-        <button 
-          @click.stop="removeTag(tag.id)"
-          class="ml-1 text-gray-400 hover:text-gray-600"
-        >
-          &times;
-        </button>
-      </span>
+        <i class="fas fa-times"></i>
+      </button>
     </div>
 
-    <!-- 下拉选择框 -->
+    <!-- 已选标签区域 -->
+    <div class="mb-4">
+      <h4 class="text-sm font-medium text-gray-500 mb-2">已选标签</h4>
+      <div 
+        v-if="selectedTags.length > 0"
+        class="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg min-h-12"
+      >
+        <span 
+          v-for="tag in selectedTags" 
+          :key="tag.id"
+          class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium shadow-sm"
+          :style="{ 
+            backgroundColor: tag.color + '20', 
+            color: tag.color,
+            border: `1px solid ${tag.color}30`
+          }"
+        >
+          {{ tag.name }}
+          <button 
+            @click.stop="removeTag(tag.id)"
+            class="ml-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <i class="fas fa-times text-xs"></i>
+          </button>
+        </span>
+      </div>
+      <div 
+        v-else
+        class="p-3 text-center text-gray-400 bg-gray-50 rounded-lg"
+      >
+        <i class="fas fa-tags mb-1"></i>
+        <p class="text-xs">暂无已选标签</p>
+      </div>
+    </div>
+
+    <!-- 标签搜索和选择 -->
     <div class="relative">
-      <input
-        type="text"
-        v-model="searchQuery"
-        @focus="showDropdown = true"
-        @blur="handleBlur"
-        placeholder="选择标签..."
-        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-      />
+      <div class="relative">
+        <input
+          type="text"
+          v-model="searchQuery"
+          @focus="showDropdown = true"
+          @blur="handleBlur"
+          placeholder="搜索或选择标签..."
+          class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        />
+        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+      </div>
       
       <!-- 下拉菜单 -->
-      <div 
-        v-show="showDropdown"
-        class="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 focus:outline-none max-h-60 overflow-auto"
+      <transition
+        enter-active-class="transition duration-100 ease-out"
+        enter-from-class="transform scale-95 opacity-0"
+        enter-to-class="transform scale-100 opacity-100"
+        leave-active-class="transition duration-75 ease-in"
+        leave-from-class="transform scale-100 opacity-100"
+        leave-to-class="transform scale-95 opacity-0"
       >
         <div 
-          v-for="tag in filteredTags"
-          :key="tag.id"
-          @mousedown.prevent="selectTag(tag)"
-          class="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100"
-          :style="{ color: tag.color }"
+          v-show="showDropdown"
+          class="absolute z-20 mt-1 w-full bg-white shadow-xl rounded-lg py-1 text-base ring-1 ring-black ring-opacity-5 focus:outline-none max-h-72 overflow-y-auto custom-scroll"
         >
-          <div class="flex items-center">
-            <span class="font-medium">{{ tag.name }}</span>
-            <span class="ml-2 text-xs text-gray-500">{{ tag.description }}</span>
+          <div 
+            v-for="tag in filteredTags"
+            :key="tag.id"
+            @mousedown.prevent="selectTag(tag)"
+            class="cursor-pointer select-none relative py-2.5 pl-4 pr-10 hover:bg-blue-50 transition-colors"
+            :style="{ color: tag.color }"
+          >
+            <div class="flex items-center">
+              <i class="fas fa-tag mr-3" :style="{ color: tag.color }"></i>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium truncate">{{ tag.name }}</p>
+                <p v-if="tag.description" class="text-xs text-gray-500 truncate">{{ tag.description }}</p>
+              </div>
+            </div>
+          </div>
+          <div 
+            v-if="filteredTags.length === 0"
+            class="px-4 py-6 text-center"
+          >
+            <i class="fas fa-search text-2xl text-gray-300 mb-2"></i>
+            <p class="text-gray-500 text-sm">没有找到匹配的标签</p>
+            <button 
+              class="mt-3 text-xs text-blue-500 hover:text-blue-600"
+              @click.stop="showCreateTag = true"
+            >
+              <i class="fas fa-plus mr-1"></i>创建新标签
+            </button>
           </div>
         </div>
-        <div 
-          v-if="filteredTags.length === 0"
-          class="px-3 py-2 text-gray-500 text-sm"
-        >
-          没有匹配的标签
-        </div>
-      </div>
+      </transition>
     </div>
   </div>
 </template>
+
+<style scoped>
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+</style>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
