@@ -308,9 +308,29 @@ const apiConfig = {
     url: '/api/tags',
     requiresAuth: true
   },
+  getAllTags: {
+    method: 'GET',
+    url: '/api/tags/all/',
+    requiresAuth: true
+  },
   getFileTree: {
     method: 'GET',
     url: '/api/files/tree',
+    requiresAuth: true
+  },
+  addFileTags: {
+    method: 'POST',
+    url: '/api/files/:id/add_tags/',
+    requiresAuth: true
+  },
+  removeFileTag: {
+    method: 'DELETE', 
+    url: '/api/files/:id/remove_tag/',
+    requiresAuth: true
+  },
+  getFileTags: {
+    method: 'GET',
+    url: '/api/files/:id/get_tags/',
     requiresAuth: true
   },
   createTag: {

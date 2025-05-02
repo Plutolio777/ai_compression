@@ -9,6 +9,7 @@ from .serializers import (
     FileUploadSerializer,
     FolderCreateSerializer
 )
+from tag_manager.serializers import TagSerializer
 from account.models import User
 
 class FileViewSet(viewsets.ModelViewSet):
@@ -158,6 +159,88 @@ class FileViewSet(viewsets.ModelViewSet):
             return Response(
                 {'error': '指定的父目录不存在'},
                 status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['post'])
+    def add_tags(self, request, pk=None):
+        """为文件添加标签"""
+        try:
+            file = self.get_object()
+            tag_ids = request.data.get('tag_ids', [])
+            
+            if not tag_ids:
+                return Response(
+                    {'error': '请提供标签ID列表'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # 获取标签对象
+            tags = Tag.objects.filter(id__in=tag_ids)
+            if tags.count() != len(tag_ids):
+                return Response(
+                    {'error': '部分标签不存在'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # 添加标签关联
+            for tag in tags:
+                FileTag.objects.get_or_create(file=file, tag=tag)
+                tag.update_file_count()
+                
+            return Response(
+                FileSerializer(file).data,
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['delete'])
+    def remove_tag(self, request, pk=None):
+        """移除文件标签"""
+        try:
+            file = self.get_object()
+            tag_id = request.data.get('tag_id')
+            
+            if not tag_id:
+                return Response(
+                    {'error': '请提供标签ID'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # 移除标签关联
+            FileTag.objects.filter(file=file, tag_id=tag_id).delete()
+            
+            # 更新标签文件数
+            tag = Tag.objects.get(id=tag_id)
+            tag.update_file_count()
+            
+            return Response(
+                {'success': True},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['get'])
+    def get_tags(self, request, pk=None):
+        """获取文件标签列表"""
+        try:
+            file = self.get_object()
+            tags = file.tags.all()
+            return Response(
+                TagSerializer(tags, many=True).data,
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     @action(detail=False, methods=['post'])

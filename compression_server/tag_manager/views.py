@@ -1,4 +1,6 @@
 from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from django_filters import rest_framework as filters
 from .models import Tag
 from .serializers import TagSerializer
@@ -19,3 +21,10 @@ class TagViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
     filter_backends = [filters.DjangoFilterBackend]
     filterset_class = TagFilter
+
+    @action(detail=False, methods=['get'])
+    def all(self, request):
+        """获取所有标签(不分页)"""
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

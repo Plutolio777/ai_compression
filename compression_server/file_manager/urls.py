@@ -10,4 +10,5 @@ urlpatterns = [
     path('tree/', FileViewSet.as_view({'get': 'tree'}), name='file-tree'),
     path('upload/', FileViewSet.as_view({'post': 'upload'}), name='file-upload'),
     path('create_folder/', FileViewSet.as_view({'post': 'create_folder'}), name='create-folder'),
+    path('<int:pk>/get_tags/', FileViewSet.as_view({'get': 'get_tags'}), name='file-get-tags'),
 ]

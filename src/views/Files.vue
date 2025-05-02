@@ -68,8 +68,8 @@
                         @contextmenu.prevent="showContextMenu($event, file)">
                         <div class="flex flex-col items-center">
                             <div class="w-16 h-16 mb-2 flex items-center justify-center">
-                                <i :class="getFileIcon(file.type)" class="text-4xl"
-                                    :style="{ color: getFileColor(file.type) }"></i>
+                                <i :class="getFileIcon(file.name)" class="text-4xl"
+                                    :style="{ color: getFileColor(file.name) }"></i>
                             </div>
                             <p class="text-sm text-center font-medium truncate w-full">{{ file.name }}</p>
                             <p class="text-xs text-gray-500">{{ file.size }}</p>
@@ -99,16 +99,21 @@
                             @dblclick="handleFileDoubleClick(file)"
                             @contextmenu.prevent="showContextMenu($event, file)">
                             <div class="col-span-6 flex items-center space-x-3">
-                                <i :class="getFileIcon(file.type)" :style="{ color: getFileColor(file.type) }"></i>
+                                <i :class="getFileIcon(file.name)" :style="{ color: getFileColor(file.name) }"></i>
                                 <span>{{ file.name }}</span>
                             </div>
                             <div class="col-span-2 text-gray-500">{{ file.size }}</div>
                             <div class="col-span-2 text-gray-500">{{ file.modifiedTime }}</div>
-                            <div class="col-span-2 flex space-x-2">
+                            <div class="col-span-2 flex flex-wrap gap-1">
                                 <span v-if="file.important"
                                     class="px-2 py-1 text-xs bg-red-100 text-red-600 rounded">重要</span>
                                 <span v-if="file.cold"
                                     class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">冷数据</span>
+                                <template v-for="tag in file.tags" :key="tag">
+                                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded">
+                                        {{ tag }}
+                                    </span>
+                                </template>
                             </div>
                         </div>
                     </template>
@@ -207,7 +212,10 @@
         <button class="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
             <i class="fas fa-share-alt mr-2"></i> 分享
         </button>
-        <button class="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+        <button 
+          class="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
+          @click.stop="handleAddTagClick"
+        >
             <i class="fas fa-tags mr-2"></i> 添加标签
         </button>
         <div class="border-t my-1"></div>
@@ -233,16 +241,63 @@
       @close="showCreateFolderModal = false"
       @create-success="handleCreateFolderSuccess"
     />
+
+    <!-- 标签管理浮动弹窗 -->
+    <div v-if="showTagModal" class="fixed bg-white shadow-lg rounded-lg z-50"
+        :style="{
+          top: `${menuPosition.y + 20}px`,
+          left: `${menuPosition.x}px`
+        }"
+        @click.stop>
+      <TagSelector
+        :file-id="currentTagFile.id"
+        :initial-tags="fileTags[currentTagFile.id] || []"
+        @update:tags="handleUpdateTags"
+        @close="showTagModal = false"
+      />
+    </div>
 </template>
 <script lang="ts" setup>
 console.log(111111111111111111)
 import { ref, onMounted, onUnmounted, reactive, computed, nextTick } from 'vue';
 import UploadModal from '../components/UploadModal.vue';
 import CreateFolderModal from '../components/CreateFolderModal.vue';
+import TagSelector from '../components/TagSelector.vue';
 import apiService from '../api/apiService';
 
 const showUploadModal = ref(false);
 const showCreateFolderModal = ref(false);
+const showTagModal = ref(false);
+const currentTagFile = ref(null);
+const fileTags = ref({});
+// 打开标签管理弹窗
+const openTagModal = (file) => {
+  console.log('打开标签弹窗，文件:', file);
+  currentTagFile.value = file;
+  showTagModal.value = true;
+  console.log('当前文件标签:', fileTags.value[file.id]);
+  if (!fileTags.value[file.id]) {
+    console.log('获取文件标签...');
+    fetchFileTags(file.id);
+  }
+};
+// 获取文件标签
+const fetchFileTags = async (fileId) => {
+  try {
+    const response = await apiService.getFileTags(
+      {}, 
+      {},
+      { id: fileId }
+    );
+    if (response.success) {
+      fileTags.value[fileId] = response.data;
+    }
+  } catch (error) {
+    console.error('获取文件标签失败:', error);
+  }
+};
+
+
 // 网盘功能相关数据
 const viewMode = ref<'grid' | 'list'>('grid');
 const searchQuery = ref('');
@@ -260,12 +315,14 @@ const files = ref([]);
 // 获取文件列表
 const fetchFiles = async () => {
     try {
-    const parentId = idStack.value.length > 0 ? 
-        idStack.value[idStack.value.length - 1] : null;
+    let queryParams = {};
+    if (idStack.value.length > 0) {
+        queryParams.parent_id = idStack.value[idStack.value.length - 1];
+    }
     
     const response = await apiService.getFileTree(
         {}, // 请求体数据
-        {parent_id: parentId} // 查询参数
+        queryParams // 查询参数
     );
     if (response.success) {
         console.log('获取到的文件数据:', response.data);
@@ -375,57 +432,167 @@ const selectedFilePath = computed(() => {
     const pathStr = currentPath.value.join('/');
     return pathStr ? `/${pathStr}/` : '/';
 });
-const getFileIcon = (type: string) => {
+const getFileExtension = (filename: string) => {
+    if (filename === 'folder') return 'folder';
+    const parts = filename.split('.');
+    return parts.length > 1 ? parts.pop()?.toLowerCase() || 'file' : 'file';
+};
+
+const getFileIcon = (filename: string) => {
+    const type = getFileExtension(filename);
     const iconMap: Record<string, string> = {
         // 办公文档
         doc: 'fas fa-file-word',
+        docx: 'fas fa-file-word',
         xls: 'fas fa-file-excel',
+        xlsx: 'fas fa-file-excel',
         ppt: 'fas fa-file-powerpoint',
+        pptx: 'fas fa-file-powerpoint',
+        csv: 'fas fa-file-csv',
+        txt: 'fas fa-file-alt',
+        rtf: 'fas fa-file-alt',
         // PDF
         pdf: 'fas fa-file-pdf',
         // 图片
         image: 'fas fa-file-image',
+        jpg: 'fas fa-file-image',
+        jpeg: 'fas fa-file-image',
+        png: 'fas fa-file-image',
+        gif: 'fas fa-file-image',
+        bmp: 'fas fa-file-image',
+        svg: 'fas fa-file-image',
+        webp: 'fas fa-file-image',
         // 视频
         video: 'fas fa-file-video',
+        mp4: 'fas fa-file-video',
+        mov: 'fas fa-file-video',
+        avi: 'fas fa-file-video',
+        mkv: 'fas fa-file-video',
+        webm: 'fas fa-file-video',
         // 音频
         audio: 'fas fa-file-audio',
+        mp3: 'fas fa-file-audio',
+        wav: 'fas fa-file-audio',
+        ogg: 'fas fa-file-audio',
+        flac: 'fas fa-file-audio',
         // 压缩文件
         archive: 'fas fa-file-archive',
+        zip: 'fas fa-file-archive',
+        rar: 'fas fa-file-archive',
+        '7z': 'fas fa-file-archive',
+        tar: 'fas fa-file-archive',
+        gz: 'fas fa-file-archive',
         // 代码文件
         code: 'fas fa-file-code',
+        js: 'fas fa-file-code',
+        ts: 'fas fa-file-code',
+        py: 'fas fa-file-code',
+        java: 'fas fa-file-code',
+        cpp: 'fas fa-file-code',
+        h: 'fas fa-file-code',
+        html: 'fas fa-file-code',
+        css: 'fas fa-file-code',
+        scss: 'fas fa-file-code',
+        less: 'fas fa-file-code',
+        json: 'fas fa-file-code',
+        xml: 'fas fa-file-code',
+        yml: 'fas fa-file-code',
+        yaml: 'fas fa-file-code',
         // 设计文件
         psd: 'fas fa-file-image',
         ai: 'fas fa-file-image',
+        sketch: 'fas fa-file-image',
+        figma: 'fas fa-file-image',
         // 配置文件
         config: 'fas fa-file-alt',
+        ini: 'fas fa-file-alt',
+        conf: 'fas fa-file-alt',
+        // 数据库
+        sql: 'fas fa-database',
+        db: 'fas fa-database',
+        // 可执行文件
+        exe: 'fas fa-cog',
+        dll: 'fas fa-cog',
         // 文件夹
         folder: 'fas fa-folder'
     };
     return iconMap[type] || 'fas fa-file';
 };
-const getFileColor = (type: string) => {
+const getFileColor = (filename: string) => {
+    const type = getFileExtension(filename);
     const colorMap: Record<string, string> = {
         // 办公文档
         doc: '#4285f4',
-        xls: '#0f9d58', 
+        docx: '#4285f4',
+        xls: '#0f9d58',
+        xlsx: '#0f9d58',
         ppt: '#ff5722',
+        pptx: '#ff5722',
+        csv: '#607d8b',
+        txt: '#9e9e9e',
+        rtf: '#9e9e9e',
         // PDF
         pdf: '#ff4444',
         // 图片
         image: '#42b883',
+        jpg: '#42b883',
+        jpeg: '#42b883',
+        png: '#42b883',
+        gif: '#42b883',
+        bmp: '#42b883',
+        svg: '#42b883',
+        webp: '#42b883',
         // 视频
         video: '#fb8c00',
+        mp4: '#fb8c00',
+        mov: '#fb8c00',
+        avi: '#fb8c00',
+        mkv: '#fb8c00',
+        webm: '#fb8c00',
         // 音频
         audio: '#9c27b0',
+        mp3: '#9c27b0',
+        wav: '#9c27b0',
+        ogg: '#9c27b0',
+        flac: '#9c27b0',
         // 压缩文件
         archive: '#795548',
+        zip: '#795548',
+        rar: '#795548',
+        '7z': '#795548',
+        tar: '#795548',
+        gz: '#795548',
         // 代码文件
         code: '#673ab7',
+        js: '#673ab7',
+        ts: '#673ab7',
+        py: '#673ab7',
+        java: '#673ab7',
+        cpp: '#673ab7',
+        h: '#673ab7',
+        html: '#673ab7',
+        css: '#673ab7',
+        scss: '#673ab7',
+        less: '#673ab7',
+        json: '#673ab7',
+        xml: '#673ab7',
+        yml: '#673ab7',
+        yaml: '#673ab7',
         // 设计文件
         psd: '#607d8b',
         ai: '#607d8b',
+        sketch: '#607d8b',
+        figma: '#607d8b',
         // 配置文件
-        config: '#9e9e9e'
+        config: '#9e9e9e',
+        ini: '#9e9e9e',
+        conf: '#9e9e9e',
+        // 数据库
+        sql: '#009688',
+        db: '#009688',
+        // 可执行文件
+        exe: '#607d8b',
+        dll: '#607d8b'
     };
     return colorMap[type] || '#757575';
 };
@@ -437,8 +604,12 @@ const toggleFileSelection = (fileId: number) => {
         selectedFiles.value.splice(index, 1);
     }
 };
+const contextMenuFile = ref(null);
+
 const showContextMenu = (event: MouseEvent, file: any) => {
     event.preventDefault();
+    console.log('显示右键菜单，文件:', file);
+    contextMenuFile.value = file;
     menuPosition.value = {
         x: event.clientX,
         y: event.clientY
@@ -447,6 +618,7 @@ const showContextMenu = (event: MouseEvent, file: any) => {
     if (!selectedFiles.value.includes(file.id)) {
         selectedFiles.value = [file.id];
     }
+    console.log('当前选中文件:', selectedFiles.value);
 };
 const navigateTo = (index: number) => {
     currentPath.value = currentPath.value.slice(0, index + 1);
@@ -478,6 +650,28 @@ const handleCreateFolderSuccess = () => {
   showCreateFolderModal.value = false;
 };
 
+// 处理标签更新
+const handleUpdateTags = async (tags) => {
+  try {
+    const response = await apiService.updateFileTags(
+      { tags },
+      {},
+      { id: currentTagFile.value.id }
+    );
+    if (response.success) {
+      fileTags.value[currentTagFile.value.id] = tags;
+      // 更新文件列表中的标签显示
+      const fileIndex = files.value.findIndex(f => f.id === currentTagFile.value.id);
+      if (fileIndex !== -1) {
+        files.value[fileIndex].tags = tags;
+      }
+    }
+  } catch (error) {
+    console.error('更新文件标签失败:', error);
+  }
+  showTagModal.value = false;
+};
+
 const refreshFileList = async () => {
   try {
     const response = await apiService.getFileList({
@@ -506,10 +700,23 @@ const resetToRoot = () => {
   setTimeout(fetchFiles, 0);
 };
 
+const handleAddTagClick = (e) => {
+  e.stopPropagation();
+  console.log('点击添加标签，当前文件:', contextMenuFile.value);
+  if (contextMenuFile.value) {
+    openTagModal(contextMenuFile.value);
+    showMenu.value = false; // 关闭右键菜单
+  }
+};
+
 const closeContextMenu = (event: MouseEvent) => {
-    if (showMenu.value) {
-        showMenu.value = false;
-    }
+  // 不关闭右键菜单如果点击的是标签弹窗
+  const isTagModalClick = event.composedPath().some(el => 
+    el.classList && el.classList.contains('tag-selector-modal')
+  );
+  if (showMenu.value && !isTagModalClick) {
+    showMenu.value = false;
+  }
 };
 onUnmounted(() => {
     window.removeEventListener('click', closeContextMenu);

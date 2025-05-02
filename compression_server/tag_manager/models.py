@@ -31,7 +31,13 @@ class Tag(models.Model):
         verbose_name='重要性'
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    file_count = models.PositiveIntegerField(default=0, verbose_name='关联文件数')
 
     class Meta:
         db_table = 'tag'
         ordering = ['-created_at']
+
+    def update_file_count(self):
+        """更新关联文件数"""
+        self.file_count = self.file_set.count()
+        self.save()

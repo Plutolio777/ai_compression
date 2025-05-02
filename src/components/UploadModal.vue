@@ -237,13 +237,17 @@ const startUpload = async () => {
 
     const uploadFile = async (file: UploadFile) => {
         const parentId = await getParentId()
+        const uploadData = {
+            file: file.file
+        }
+        
+        if (parentId !== null) {
+            uploadData.parent_id = parentId
+        }
         
         try {
             const response = await apiService.uploadFile(
-                {
-                    file: file.file,
-                    parent_id: parentId
-                },
+                uploadData,
                 {}, // query params
                 {}, // path params
                 {}, // headers
