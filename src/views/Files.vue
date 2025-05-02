@@ -66,13 +66,28 @@
                         @click="toggleFileSelection(file.id)" 
                         @dblclick="handleFileDoubleClick(file)"
                         @contextmenu.prevent="showContextMenu($event, file)">
-                        <div class="flex flex-col items-center">
+                        <div class="flex flex-col items-center h-full">
                             <div class="w-16 h-16 mb-2 flex items-center justify-center">
                                 <i :class="getFileIcon(file.name)" class="text-4xl"
                                     :style="{ color: getFileColor(file.name) }"></i>
                             </div>
                             <p class="text-sm text-center font-medium truncate w-full">{{ file.name }}</p>
                             <p class="text-xs text-gray-500">{{ file.size }}</p>
+                            <!-- 标签区域 -->
+                            <div class="absolute top-2 right-2 grid grid-auto-flow-row gap-y-1 justify-items-end">
+                                <template v-for="tag in file.tags" :key="tag.id">
+                                    <span
+                                        class="px-1.5 py-0.5 text-xs rounded truncate w-fit max-w-[48px]"
+                                        :style="{
+                                            backgroundColor: getTagColor(tag.importance) + '20',
+                                            color: getTagColor(tag.importance)
+                                        }"
+                                        :title="tag.name"
+                                    >
+                                        {{ tag.name }}
+                                    </span>
+                                </template>
+                            </div>
                         </div>
                     </div>
                 </template>
