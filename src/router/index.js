@@ -20,7 +20,7 @@ router.beforeEach((to, from, next) => {
     }
     if (to.matched.some(record => record.meta.requiresAuth)) {
         // 判断用户是否已登录（这里使用 localStorage 判断登录状态）
-        const isLoggedIn = localStorage.getItem('user');  // 假设登录成功后 token 存储在 localStorage 中
+        const isLoggedIn = localStorage.getItem('access');  // 检查access token
 
         if (!isLoggedIn) {
             // 如果未登录，跳转到登录页面

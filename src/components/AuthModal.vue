@@ -135,6 +135,8 @@ import { ref, computed } from 'vue'
 import apiService from '@/api/apiService'
 import { useStore } from 'vuex'
 
+const emit = defineEmits(['user-updated'])
+
 const store = useStore()
 const visible = ref(false)
 const isLogin = ref(true)
@@ -271,28 +273,42 @@ const handleLogin = async () => {
   if (!validateLogin()) return
 
   try {
-    const res = await apiService.login(
-      { username: loginForm.value.username, password: loginForm.value.password },
-      {}, // params
-      {}, // pathParams
-      {}, // headers
-      { requiresAuth: false }
-    )
-    if (res.success) {
-      // 处理注册成功响应
-      // Handle both possible response formats
-      const responseData = res.data || res;
-      const userData = responseData.user || {
-        username: loginForm.value.username
-      };
-      
-      store.commit('setUser', {
-        user: userData,
-        token: responseData.access,
-        refreshToken: responseData.refresh
-      });
-      visible.value = false
-      showMessage('success', '登录成功')
+      const loginRes = await apiService.login(
+        { username: loginForm.value.username, password: loginForm.value.password },
+        {}, // params
+        {}, // pathParams
+        {}, // headers
+        { requiresAuth: false }
+      )
+      if (loginRes.success) {
+        // 先存储token到store
+        store.commit('setUser', {
+          user: null, // Will be updated after me() call
+          token: loginRes.data.access || loginRes.access,
+          refreshToken: loginRes.data.refresh || loginRes.refresh
+        });
+
+        // 然后调用me接口获取用户信息
+        const meRes = await apiService.me();
+        
+        if (meRes.success) {
+          const userData = meRes.data.user || meRes.data;
+          // 更新用户信息
+          store.commit('setUser', {
+            user: {
+              ...userData,
+              name: userData.username || userData.name
+            },
+            token: loginRes.data.access || loginRes.access,
+            refreshToken: loginRes.data.refresh || loginRes.refresh
+          });
+          visible.value = false
+          showMessage('success', '登录成功')
+          // 通知父组件用户状态已更新
+          emit('user-updated')
+        } else {
+          showMessage('error', '获取用户信息失败')
+        }
     } else {
       showMessage('error', res.error || '登录失败')
     }

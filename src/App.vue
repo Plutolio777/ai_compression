@@ -94,12 +94,13 @@
     </div>
 
     <!-- 添加AuthModal组件 -->
-    <AuthModal ref="authModal" />
+    <AuthModal ref="authModal" @user-updated="forceUpdate++" />
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, defineEmits } from 'vue';
 import { useStore } from 'vuex';
+import apiService from '@/api/apiService';
 import Compression from './views/Compression.vue';
 import Files from './views/Files.vue';
 import ModelConfig from './views/ModelConfig.vue';
@@ -114,8 +115,13 @@ const avatarUrl = 'https://ai-public.mastergo.com/ai/img_res/9099b9d9c052e912f4f
 const store = useStore();
 const currentMenu = ref('compress');
 const showUserMenu = ref(false);
-const user = computed(() => store.state.user);
+const user = computed(() => {
+  // 强制依赖追踪
+  return JSON.parse(JSON.stringify(store.state.user));
+});
+
 const authModal = ref();
+const forceUpdate = ref(0);
 
 const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value;
@@ -147,8 +153,30 @@ const handleClickOutside = (event) => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
+  
+  // 初始化时检查登录状态
+  const accessToken = localStorage.getItem('access');
+  if (accessToken) {
+    try {
+      const res = await apiService.me();
+      if (res.success) {
+        // 处理可能的嵌套数据结构
+        const userData = res.data.user || res.data;
+        store.commit('setUser', {
+          user: {
+            ...userData,
+            name: userData.username || userData.name
+          },
+          token: accessToken,
+          refreshToken: localStorage.getItem('refresh')
+        });
+      }
+    } catch (error) {
+      console.error('获取用户信息失败:', error);
+    }
+  }
 });
 
 onUnmounted(() => {

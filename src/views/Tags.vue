@@ -110,7 +110,7 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-if="filteredTags.length === 0">
+              <tr v-if="tags.length === 0">
                 <td colspan="5" class="px-4 py-12 text-center">
                   <div class="flex flex-col items-center justify-center space-y-2">
                     <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,7 +120,7 @@
                   </div>
                 </td>
               </tr>
-              <tr v-for="row in filteredTags" :key="row.id" class="hover:bg-gray-50/50">
+              <tr v-for="row in tags" :key="row.id" class="hover:bg-gray-50/50">
                 <td class="px-4 py-3 whitespace-nowrap">
                   <div class="flex items-center">
                     <span 
@@ -143,7 +143,7 @@
                   {{ row.fileCount }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap hidden sm:table-cell">
-                  {{ formatDate(row.createdAt) }}
+                  {{ formatDate(row.created_at) }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
                 <div class="flex space-x-4">
@@ -181,13 +181,13 @@
         <div class="flex space-x-2">
           <button
             @click="pagination.page = Math.max(1, pagination.page - 1)"
-            :disabled="pagination.page === 1 || filteredTags.length === 0"
+            :disabled="pagination.page === 1 || tags.length === 0"
             class="px-3 py-1 border rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             上一页
           </button>
           <div class="flex space-x-1">
-            <template v-if="filteredTags.length > 0">
+            <template v-if="tags.length > 0">
               <button
                 v-for="page in Math.ceil(pagination.total / pagination.pageSize)"
                 :key="page"
@@ -211,7 +211,7 @@
           </div>
           <button
             @click="pagination.page = Math.min(Math.ceil(pagination.total / pagination.pageSize), pagination.page + 1)"
-            :disabled="pagination.page === Math.ceil(pagination.total / pagination.pageSize) || filteredTags.length === 0"
+            :disabled="pagination.page === Math.ceil(pagination.total / pagination.pageSize) || tags.length === 0"
             class="px-3 py-1 border rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             下一页
@@ -338,7 +338,7 @@ interface Tag {
   description: string
   color: string
   fileCount: number
-  createdAt: string
+  created_at: string
 }
 
 // 颜色预设选项
@@ -390,18 +390,19 @@ const form = reactive({
   color: colorOptions[0]
 })
 
-// 计算属性
-const filteredTags = computed(() => {
-  return tags.value.filter(tag => {
-    const matchSearch = tag.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-    const matchColor = selectedColor.value ? tag.color === selectedColor.value : true
-    return matchSearch && matchColor
-  })
-})
-
 // 方法
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString()
+  const padZero = (num: number) => num.toString().padStart(2, '0')
+  const date = new Date(dateString)
+  
+  const year = date.getFullYear()
+  const month = padZero(date.getMonth() + 1)
+  const day = padZero(date.getDate())
+  const hours = padZero(date.getHours())
+  const minutes = padZero(date.getMinutes())
+  const seconds = padZero(date.getSeconds())
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 const openDialog = (type: 'create' | 'edit', row?: Tag) => {
@@ -527,12 +528,22 @@ const confirmDelete = async () => {
 // 获取标签数据
 const fetchTags = async () => {
   try {
-    const result = await apiService.getTags({
+    const params = {
       page: pagination.page,
-      page_size: pagination.pageSize
-    })
+      page_size: pagination.pageSize,
+      name: searchQuery.value || undefined,  // 传递搜索参数，空时不传
+      color: selectedColor.value || undefined // 传递颜色参数，空时不传
+    }
+    
+    // 移除值为undefined的参数
+    Object.keys(params).forEach(key => params[key] === undefined && delete params[key])
+    
+    const result = await apiService.getTags({}, params)
     if (result.success) {
-      tags.value = result.data.results
+      tags.value = result.data.results.map(tag => ({
+        ...tag,
+        fileCount: 0  // 默认设为0，因为后端模型中没有这个字段
+      }))
       pagination.total = result.data.count
     } else {
       showToast(result.error || '获取标签失败', 'error')
@@ -544,6 +555,12 @@ const fetchTags = async () => {
 
 // 监听分页变化
 watch(() => pagination.page, fetchTags)
+
+// 监听搜索条件变化
+watch([searchQuery, selectedColor], () => {
+  pagination.page = 1 // 重置到第一页
+  fetchTags()
+})
 
 onMounted(fetchTags)
 </script>

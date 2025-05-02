@@ -159,8 +159,9 @@ const apiConfig = {
     // 示例：GET 请求
     me: {
         method: 'GET',
-        url: '/api/user/users/me',
+        url: '/api/auth/me/',
         isFileUpload: false,
+        requiresAuth: true
     },
     register: {
         method: 'POST',
@@ -265,12 +266,12 @@ const apiConfig = {
   },
   updateTag: {
     method: 'PUT',
-    url: '/api/tags/:id',
+    url: '/api/tags/:id/',
     requiresAuth: true
   },
   deleteTag: {
     method: 'DELETE',
-    url: '/api/tags/:id',
+    url: '/api/tags/:id/',
     requiresAuth: true
   },
     refreshToken: {
