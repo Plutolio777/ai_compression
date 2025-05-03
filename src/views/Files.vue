@@ -95,7 +95,7 @@
               <p class="text-sm text-center font-medium truncate w-full">
                 {{ file.name }}
               </p>
-              <p class="text-xs text-gray-500">{{ file.size }}</p>
+              <p class="text-xs text-gray-500">{{ formatFileSize(file.size) }}</p>
               <!-- 标签区域 -->
               <div
                 class="absolute top-2 right-2 grid grid-auto-flow-row gap-y-1 justify-items-end"
@@ -157,7 +157,7 @@
                 ></i>
                 <span>{{ file.name }}</span>
               </div>
-              <div class="col-span-2 text-gray-500">{{ file.size }}</div>
+              <div class="col-span-2 text-gray-500">{{ formatFileSize(file.size) }}</div>
               <div class="col-span-2 text-gray-500">{{ file.modifiedTime }}</div>
               <div class="col-span-2 flex flex-wrap gap-1 min-w-[120px]">
                 <div class="group relative inline-block">
@@ -287,18 +287,27 @@
           </div>
 
         </div>
-
-        <!-- 文件信息展示区 -->
-        <div class="mt-4 space-y-2" v-if="selectedFile">
+        <!-- 文件详情信息 -->
+        <div>
+          <h3 class="text-lg font-medium mb-4">文件详情</h3>
+          <div class="space-y-3">
+            <div>
+              <p class="text-sm text-gray-500">文件名称</p>
               <div class="flex items-center">
                 <i :class="getFileIcon(selectedFile.name)" 
                     class="mr-2"
                     :style="{ color: getFileColor(selectedFile.name) }"></i>
                 <h4 class="text-lg font-medium truncate">{{ selectedFile.name }}</h4>
               </div>
-              <p class="text-sm text-gray-500">{{ selectedFile.size }}</p>
-              <!-- 标签展示区 -->
-              <div class="flex items-center overflow-x-auto py-1 gap-1 no-scrollbar">
+            </div>
+            <div>
+              <p class="text-sm text-gray-500">文件大小</p>
+              <p class="text-sm text-gray-500">{{ formatFileSize(selectedFile.size) }}</p>
+            </div>
+            <!-- 标签展示区 -->
+            <div>
+                <p class="text-sm text-gray-500">文件标签</p>
+                <div class="flex items-center overflow-x-auto py-1 gap-1 no-scrollbar">
                 <template v-for="tag in selectedFile.tags" :key="tag.id">
                   <span
                     class="px-2 py-1 text-xs rounded whitespace-nowrap"
@@ -315,21 +324,33 @@
                   暂无标签
                 </span>
               </div>
-        </div>
-        <!-- 文件详情信息 -->
-        <div>
-          <h3 class="text-lg font-medium mb-4">文件详情</h3>
-          <div class="space-y-3">
+            </div>
+            <!-- 存储路径展示区 -->
             <div>
               <p class="text-sm text-gray-500">存储路径</p>
               <p class="text-sm font-medium">{{ selectedFilePath }}</p>
             </div>
+            <!-- 压缩信息展示区 -->
             <div>
-              <p class="text-sm text-gray-500">压缩信息</p>
-              <p class="text-sm font-medium">使用 ZSTD 算法，压缩率 65%</p>
+              <div class="flex items-center">
+                <p class="text-sm text-gray-500">压缩信息</p>
+                <i v-if="selectedFile.is_compressed" class="fas fa-check-circle text-green-500 ml-2"></i>
+              </div>
+              <div class="flex items-center">
+                <p class="text-sm font-medium">
+                  <template v-if="selectedFile.is_compressed">
+                    使用 {{ selectedFile.compression_algorithm }} 算法，压缩率 {{ selectedFile.compression_ratio }}%
+                  </template>
+                  <template v-else>
+                    暂未压缩
+                  </template>
+                </p>
+                
+              </div>
             </div>
+            <!-- 归档策略展示区 -->
             <div>
-              <p class="text-sm text-gray-500">存储策略</p>
+              <p class="text-sm text-gray-500">归档策略</p>
               <p class="text-sm font-medium">标准存储</p>
             </div>
           </div>
@@ -425,7 +446,7 @@ import UploadModal from "../components/UploadModal.vue";
 import CreateFolderModal from "../components/CreateFolderModal.vue";
 import TagSelector from "../components/TagSelector.vue";
 import apiService from "../api/apiService";
-import { iconMap, colorMap } from "../assets/fileTypes";
+import { iconMap, colorMap, formatFileSize } from "../assets/fileTypes";
 
 const showUploadModal = ref(false);
 const showCreateFolderModal = ref(false);

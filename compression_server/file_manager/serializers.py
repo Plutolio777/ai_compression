@@ -34,7 +34,7 @@ class FileSerializer(serializers.ModelSerializer):
         model = File
         fields = [
             'id', 'name', 'file_type', 'file_type_display', 
-            'is_compressed', 'compression_algorithm',
+            'is_compressed', 'compression_algorithm', 'compression_ratio',
             'is_archived', 'storage_type', 'storage_type_display',
             'storage_path', 'storage_key', 'cloud_url',
             'size', 'created_at', 'modified_at', 'modified_time',

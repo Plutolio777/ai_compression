@@ -30,6 +30,7 @@ class File(models.Model):
     actual_file = models.FileField(upload_to='get_user_file_path', null=True, blank=True)
     is_compressed = models.BooleanField(default=False)
     compression_algorithm = models.CharField(max_length=20, choices=COMPRESSION_ALGORITHMS, null=True, blank=True)
+    compression_ratio = models.FloatField(null=True, blank=True, help_text="压缩率百分比，如65表示65%")
     is_archived = models.BooleanField(default=False)
     storage_type = models.CharField(max_length=20, choices=STORAGE_TYPES, default='standard')
     storage_path = models.CharField(max_length=512, blank=True, null=True, 

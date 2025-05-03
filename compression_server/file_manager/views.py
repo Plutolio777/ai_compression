@@ -116,6 +116,9 @@ class FileViewSet(viewsets.ModelViewSet):
                 'important': important_tags.exists(),
                 'importance': importance_level,
                 'cold': file.tags.filter(name='cold').exists(),
+                'is_compressed': file.is_compressed,
+                'compression_algorithm': file.compression_algorithm,
+                'compression_ratio': file.compression_ratio,
                 'tags': [
                     {
                         'id': tag.id,
@@ -139,6 +142,9 @@ class FileViewSet(viewsets.ModelViewSet):
                     'important': child.tags.filter(importance__gte=2).exists(),
                     'importance': child.tags.filter(importance__gte=2).first().importance if child.tags.filter(importance__gte=2).exists() else 1,
                     'cold': child.tags.filter(name='cold').exists(),
+                    'is_compressed': child.is_compressed,
+                    'compression_algorithm': child.compression_algorithm,
+                    'compression_ratio': child.compression_ratio,
                     'tags': [
                         {
                             'id': tag.id,
