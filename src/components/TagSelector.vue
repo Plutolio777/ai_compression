@@ -152,7 +152,6 @@ const fetchFileTags = async () => {
       selectedTags.value = res.data
     }
   } catch (error) {
-    console.error('获取文件标签失败:', error)
   }
 }
 
@@ -170,11 +169,9 @@ const fetchTags = async () => {
     if (res.success && Array.isArray(res.data)) {
       allTags.value = res.data
     } else {
-      console.error('获取标签失败或返回数据格式不正确:', res)
       allTags.value = []
     }
   } catch (error) {
-    console.error('获取标签出错:', error)
     allTags.value = []
   }
 }

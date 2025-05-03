@@ -48,18 +48,29 @@ class FileViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def tree(self, request):
-        """根据parent_id获取子树结构"""
+        """根据parent_id获取子树结构，支持文件名搜索"""
         user = request.user
         parent_id = request.query_params.get('parent_id')
+        search_query = request.query_params.get('search_query')
         
+        # 构建基础查询
+        query = Q(user=user)
+        
+        # 处理父目录查询
         if parent_id:
             try:
                 parent = File.objects.get(id=parent_id, user=user)
-                files = File.objects.filter(parent=parent, user=user)
+                query &= Q(parent=parent)
             except File.DoesNotExist:
                 return Response({'error': '父文件夹不存在'}, status=status.HTTP_404_NOT_FOUND)
         else:
-            files = File.objects.filter(parent__isnull=True, user=user)
+            query &= Q(parent__isnull=True)
+            
+        # 处理搜索查询
+        if search_query:
+            query &= Q(name__icontains=search_query)
+            
+        files = File.objects.filter(query)
             
         data = self._build_file_tree(files)
         return Response(data)
