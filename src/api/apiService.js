@@ -204,6 +204,11 @@ async function request({method, url, data, params, pathParams, headers, isFileUp
 
 // 定义 API 配置对象
 const apiConfig = {
+  downloadFile: {
+    method: 'GET',
+    url: '/api/files/:id/download',
+    requiresAuth: true,
+  },
   // 文件管理相关API
   getFileList: {
     method: 'GET',

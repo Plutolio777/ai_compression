@@ -2,6 +2,8 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
+from django.http import FileResponse
+from django.utils import timezone
 from .models import File, FileTag
 from tag_manager.models import Tag
 from .serializers import (
@@ -284,6 +286,32 @@ class FileViewSet(viewsets.ModelViewSet):
                 TagSerializer(tags, many=True).data,
                 status=status.HTTP_200_OK
             )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        """文件下载接口"""
+        try:
+            file = self.get_object()
+            
+            # 更新最后下载时间
+            file.last_downloaded = timezone.now()
+            file.save()
+            
+            # 返回文件流
+            if file.actual_file:
+                response = FileResponse(file.actual_file)
+                response['Content-Disposition'] = f'attachment; filename="{file.name}"'
+                return response
+            else:
+                return Response(
+                    {'error': '文件不存在或已被删除'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
         except Exception as e:
             return Response(
                 {'error': str(e)},

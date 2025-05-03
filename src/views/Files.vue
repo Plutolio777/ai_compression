@@ -367,6 +367,7 @@
         <div class="flex flex-col space-y-2">
           <button
             class="!rounded-button w-full px-4 py-2 bg-blue-500 text-white hover:bg-blue-600"
+            @click="downloadFile"
           >
             下载文件
           </button>
@@ -698,6 +699,42 @@ const removeTag = async (fileId, tagId) => {
     }
   } catch (error) {
     showToast("删除标签出错: " + error.message, "error");
+  }
+};
+
+const downloadFile = async () => {
+  if (selectedFiles.value.length !== 1) return;
+  
+  try {
+    const fileId = selectedFiles.value[0];
+    const response = await apiService.downloadFile(
+      {}, // 请求体数据
+      {}, // 查询参数
+      { id: fileId } // 路径参数
+    );
+
+    if (response.success) {
+      // 创建下载链接
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // 获取文件名
+      const file = files.value.find(f => f.id === fileId);
+      link.setAttribute('download', file?.name || 'download');
+      
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      showToast('文件下载成功');
+    } else {
+      showToast(response.error || '文件下载失败', 'error');
+    }
+  } catch (error) {
+    console.error('下载文件出错:', error);
+    showToast('下载文件出错', 'error');
   }
 };
 
