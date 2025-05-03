@@ -317,9 +317,8 @@
         @click.stop>
       <TagSelector
         :file-id="currentTagFile.id"
-        :initial-tags="fileTags[currentTagFile.id] || []"
-        @update:tags="handleUpdateTags"
         @close="showTagModal = false"
+        @refresh="fetchFiles"
       />
     </div>
 </template>
@@ -335,32 +334,12 @@ const showUploadModal = ref(false);
 const showCreateFolderModal = ref(false);
 const showTagModal = ref(false);
 const currentTagFile = ref(null);
-const fileTags = ref({});
+
 // 打开标签管理弹窗
 const openTagModal = (file) => {
   console.log('打开标签弹窗，文件:', file);
   currentTagFile.value = file;
   showTagModal.value = true;
-  console.log('当前文件标签:', fileTags.value[file.id]);
-  if (!fileTags.value[file.id]) {
-    console.log('获取文件标签...');
-    fetchFileTags(file.id);
-  }
-};
-// 获取文件标签
-const fetchFileTags = async (fileId) => {
-  try {
-    const response = await apiService.getFileTags(
-      {}, 
-      {},
-      { id: fileId }
-    );
-    if (response.success) {
-      fileTags.value[fileId] = response.data;
-    }
-  } catch (error) {
-    console.error('获取文件标签失败:', error);
-  }
 };
 
 

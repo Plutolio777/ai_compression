@@ -125,24 +125,41 @@
 </style>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import apiService from '../api/apiService'
 
 const props = defineProps({
   fileId: {
     type: Number,
     required: true
-  },
-  initialTags: {
-    type: Array,
-    default: () => []
   }
 })
 
-const emit = defineEmits(['update:tags'])
+const emit = defineEmits(['close', 'refresh'])
 
 const allTags = ref([])
-const selectedTags = ref([...props.initialTags])
+const selectedTags = ref([])
+
+// 获取文件标签
+const fetchFileTags = async () => {
+  try {
+    const res = await apiService.getFileTags(
+      {},
+      {},
+      { id: props.fileId }
+    )
+    if (res.success && Array.isArray(res.data)) {
+      selectedTags.value = res.data
+    }
+  } catch (error) {
+    console.error('获取文件标签失败:', error)
+  }
+}
+
+// 初始化时获取文件标签
+onMounted(() => {
+  fetchFileTags()
+})
 const searchQuery = ref('')
 const showDropdown = ref(false)
 
@@ -184,7 +201,7 @@ const selectTag = async (tag) => {
   
   if (res.success) {
     selectedTags.value.push(tag)
-    emit('update:tags', [...selectedTags.value])
+    emit('refresh') // 触发父组件刷新文件列表
   }
   searchQuery.value = ''
   showDropdown.value = false
@@ -200,7 +217,7 @@ const removeTag = async (tagId) => {
   
   if (res.success) {
     selectedTags.value = selectedTags.value.filter(t => t.id !== tagId)
-    emit('update:tags', [...selectedTags.value])
+    emit('refresh') // 触发父组件刷新文件列表
   }
 }
 
