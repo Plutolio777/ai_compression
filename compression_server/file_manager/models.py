@@ -2,6 +2,8 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from tag_manager.models import Tag
 import hashlib
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 class File(models.Model):
     FILE_TYPES = [
@@ -76,6 +78,14 @@ class FileTag(models.Model):
     class Meta:
         unique_together = ('file', 'tag')
         ordering = ['-created_at']
+
+@receiver(post_save, sender=FileTag)
+def update_tag_file_count_on_save(sender, instance, **kwargs):
+    instance.tag.update_file_count()
+
+@receiver(post_delete, sender=FileTag)
+def update_tag_file_count_on_delete(sender, instance, **kwargs):
+    instance.tag.update_file_count()
 
 def get_user_file_path(instance, filename):
     # 生成形如：user_<id>/folder1/folder2/filename

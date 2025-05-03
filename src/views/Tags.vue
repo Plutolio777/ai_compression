@@ -652,7 +652,7 @@ const fetchTags = async () => {
     if (result.success) {
       tags.value = result.data.results.map(tag => ({
         ...tag,
-        fileCount: 0  // 默认设为0，因为后端模型中没有这个字段
+        fileCount: tag.file_count || 0  // 使用后端返回的file_count字段
       }))
       pagination.total = result.data.count
     } else {
