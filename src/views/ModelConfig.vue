@@ -28,9 +28,10 @@
             <div class="flex items-center space-x-3">
               <i class="fas fa-robot text-blue-500 text-xl"></i>
               <h3 class="font-medium">DeepSeek 模型</h3>
-              <span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">已连接</span>
+              <span v-if="connectionStatus.isConnected" class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">已连接</span>
+              <span v-else class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">未连接</span>
             </div>
-            <button class="text-blue-500 hover:text-blue-700 text-sm">
+            <button @click="testConnection" class="text-blue-500 hover:text-blue-700 text-sm">
               <i class="fas fa-sync-alt mr-1"></i>刷新状态
             </button>
           </div>
@@ -50,7 +51,7 @@
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">温度 (0-1)</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">温度 (0-1.5)</label>
                 <input type="number" min="0" max="1" step="0.1" v-model="config.deepseek.temperature"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
               </div>
@@ -110,16 +111,18 @@
         <div class="border border-gray-200 rounded-lg p-4">
           <div class="flex items-center space-x-2">
             <span class="relative flex h-3 w-3">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              <span v-if="connectionStatus.isConnected" 
+                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3" 
+                :class="connectionStatus.isConnected ? 'bg-green-500' : 'bg-gray-500'"></span>
             </span>
             <span class="text-sm font-medium">连接状态</span>
           </div>
-          <div class="mt-2 text-gray-500 text-sm">最后检测: 刚刚</div>
+          <div class="mt-2 text-gray-500 text-sm">最后检测: {{connectionStatus.lastChecked || '从未检测'}}</div>
         </div>
         <div class="border border-gray-200 rounded-lg p-4">
           <div class="text-sm font-medium">响应时间</div>
-          <div class="mt-1 text-2xl font-semibold">328ms</div>
+          <div class="mt-1 text-2xl font-semibold">{{connectionStatus.responseTime || '--'}}ms</div>
         </div>
         <div class="border border-gray-200 rounded-lg p-4">
           <div class="text-sm font-medium">本月调用</div>
@@ -132,6 +135,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import modelService from '../api/modelService'
 
 const currentTab = ref('deepseek')
@@ -162,26 +166,64 @@ const config = ref({
   }
 })
 
+const connectionStatus = ref({
+  isConnected: false,
+  responseTime: 0,
+  lastChecked: ''
+})
+
 const loadConfig = async () => {
-  const res = await modelService.getConfig()
-  if (res.success) {
-    config.value = res.data
+  try {
+    const res = await modelService.getConfig()
+    if (res.success) {
+      config.value = res.data.data
+      console.log(config.value)
+      // 更新连接状态
+      if (res.data.deepseek?.apiKey) {
+        connectionStatus.value.isConnected = true
+      }
+    }
+  } catch (error) {
+    console.error('加载配置失败:', error)
   }
 }
 
 const saveConfig = async () => {
-  const res = await modelService.saveConfig(config.value)
-  if (res.success) {
-    // 保存成功处理
+  try {
+    
+    let data = {...config.value[currentTab.value]}
+    data["model_type"] = currentTab.value
+    const res = await modelService.saveConfig(data)
+    if (res.success) {
+      ElMessage.success('配置保存成功')
+      // 重新加载配置
+      await loadConfig()
+    } else {
+      ElMessage.error(`保存失败: ${res.error || '未知错误'}`)
+    }
+  } catch (error) {
+    ElMessage.error('保存配置时发生错误')
+    console.error('保存配置错误:', error)
   }
 }
 
 const testConnection = async () => {
-  const res = await modelService.testConnection()
-  if (res.success) {
-    // 连接成功处理
-  } else {
-    // 连接失败处理
+  try {
+    const res = await modelService.testConnection()
+    if (res.success) {
+      connectionStatus.value = {
+        isConnected: res.is_connected,
+        responseTime: res.response_time,
+        lastChecked: new Date().toLocaleTimeString()
+      }
+      ElMessage.success('连接测试成功')
+    } else {
+      connectionStatus.value.isConnected = false
+      ElMessage.error(`连接失败: ${res.error || '未知错误'}`)
+    }
+  } catch (error) {
+    ElMessage.error('测试连接时发生错误')
+    console.error('测试连接错误:', error)
   }
 }
 

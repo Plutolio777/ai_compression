@@ -255,17 +255,17 @@ const apiConfig = {
     // 模型配置相关API
     getModelConfig: {
         method: 'GET',
-        url: '/api/model/config',
+        url: '/api/models/config/',
         requiresAuth: true
     },
     saveModelConfig: {
         method: 'POST', 
-        url: '/api/model/config',
+        url: '/api/models/config/',
         requiresAuth: true
     },
     testModelConnection: {
         method: 'POST',
-        url: '/api/model/test',
+        url: '/api/models/test-connection/',
         requiresAuth: true
     },
     // 智能策略API

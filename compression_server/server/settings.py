@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'tag_manager',
     'account.apps.AccountConfig',
     'file_manager.apps.FileManagerConfig',
+    'model_manager.apps.ModelManagerConfig'
 ]
 
 AUTH_USER_MODEL = 'account.User'

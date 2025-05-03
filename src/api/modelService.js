@@ -1,47 +1,30 @@
-import apiService from './apiService'
-
-// 开发环境模拟延迟（1-3秒随机）
-const simulateDelay = () => new Promise(resolve => 
-  setTimeout(resolve, 1000 + Math.random() * 2000)
-)
-
-const mockConfig = {
-  deepseek: {
-    apiKey: 'dev_xxxxxx',
-    endpoint: 'https://api.deepseek.com/v1/chat',
-    temperature: 0.7,
-    maxTokens: 2048,
-    status: 'connected'
-  }
-}
+import apiService from './apiService';
 
 export default {
+  /**
+   * 获取模型配置
+   * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+   */
   async getConfig() {
-    if (import.meta.env.MODE === 'development') {
-      await simulateDelay()
-      return { success: true, data: mockConfig }
-    }
-    return apiService.getModelConfig()
+    return await apiService.getModelConfig();
   },
 
+  /**
+   * 保存模型配置
+   * @param {Object} config - 模型配置对象
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
   async saveConfig(config) {
-    if (import.meta.env.MODE === 'development') {
-      await simulateDelay()
-      Object.assign(mockConfig.deepseek, config)
-      return { success: true }
-    }
-    return apiService.saveModelConfig(config)
+    return await apiService.saveModelConfig({...config});
   },
 
+  /**
+   * 测试模型连接
+   * @returns {Promise<{success: boolean, is_connected?: boolean, response_time?: number, error?: string}>}
+   */
   async testConnection() {
-    if (import.meta.env.MODE === 'development') {
-      await simulateDelay()
-      return { 
-        success: Math.random() > 0.2,
-        latency: 300 + Math.random() * 700,
-        message: Math.random() > 0.2 ? '连接成功' : '连接超时'
-      }
-    }
-    return apiService.testModelConnection()
+    return await apiService.testModelConnection({
+      model_type: 'deepseek'
+    });
   }
-}
+};
