@@ -17,6 +17,7 @@ class ModelConfig(models.Model):
     endpoint = models.URLField(max_length=255, blank=True)
     temperature = models.FloatField(default=0.7)
     max_tokens = models.IntegerField(default=2048)
+    sub_model = models.CharField(max_length=50, blank=True, default='')
     is_connected = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

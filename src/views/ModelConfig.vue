@@ -28,7 +28,7 @@
             <div class="flex items-center space-x-3">
               <i class="fas fa-robot text-blue-500 text-xl"></i>
               <h3 class="font-medium">DeepSeek 模型</h3>
-              <span v-if="connectionStatus.isConnected" class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">已连接</span>
+              <span v-if="config.deepseek.isConnected" class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">已连接</span>
               <span v-else class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">未连接</span>
             </div>
             <button @click="testConnection" class="text-blue-500 hover:text-blue-700 text-sm">
@@ -60,6 +60,15 @@
                 <input type="number" min="100" max="4096" v-model="config.deepseek.maxTokens"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
               </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">子模型</label>
+              <select v-model="config.deepseek.subModel"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                <option value="deepseek-chat">deepseek-chat</option>
+                <option value="deepseek-reasoner">deepseek-reasoner</option>
+              </select>
             </div>
           </div>
 
@@ -150,19 +159,22 @@ const config = ref({
     apiKey: '',
     endpoint: '',
     temperature: 0.7,
-    maxTokens: 2048
+    maxTokens: 2048,
+    subModel: ''
   },
   openai: {
     apiKey: '',
     endpoint: 'https://api.openai.com/v1',
     temperature: 0.7,
-    maxTokens: 2048
+    maxTokens: 2048,
+    subModel: ''
   },
   anthropic: {
     apiKey: '',
     endpoint: 'https://api.anthropic.com/v1',
     temperature: 0.7,
-    maxTokens: 2048
+    maxTokens: 2048,
+    subModel: ''
   }
 })
 
@@ -211,16 +223,11 @@ const testConnection = async () => {
   try {
     const res = await modelService.testConnection()
     if (res.success) {
-      connectionStatus.value = {
-        isConnected: res.is_connected,
-        responseTime: res.response_time,
-        lastChecked: new Date().toLocaleTimeString()
-      }
       ElMessage.success('连接测试成功')
     } else {
-      connectionStatus.value.isConnected = false
       ElMessage.error(`连接失败: ${res.error || '未知错误'}`)
     }
+    loadConfig()
   } catch (error) {
     ElMessage.error('测试连接时发生错误')
     console.error('测试连接错误:', error)

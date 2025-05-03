@@ -268,6 +268,11 @@ const apiConfig = {
         url: '/api/models/test-connection/',
         requiresAuth: true
     },
+    testModel: {
+        method: 'POST',
+        url: '/api/models/test/',
+        requiresAuth: true
+    },
     // 智能策略API
     getStrategy: {
         method: 'GET',

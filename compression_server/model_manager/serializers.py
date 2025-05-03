@@ -9,7 +9,7 @@ class ModelConfigSerializer(serializers.ModelSerializer):
         model = ModelConfig
         fields = [
             'id', 'model_type', 'api_key', 'endpoint', 
-            'temperature', 'max_tokens', 'is_connected'
+            'temperature', 'max_tokens', 'is_connected', 'sub_model'
         ]
 
 

@@ -28,6 +28,11 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+# Model Configuration
+DEFAULT_MODEL = 'deepseek-chat'  # 默认使用DeepSeek模型
+MODEL_API_KEY = ''  # 替换为实际的API密钥
+MODEL_API_BASE_URL = 'https://api.deepseek.com/v1'  # DeepSeek API地址
+
 # Application definition
 
 INSTALLED_APPS = [

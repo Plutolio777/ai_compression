@@ -26,5 +26,16 @@ export default {
     return await apiService.testModelConnection({
       model_type: 'deepseek'
     });
+  },
+
+  /**
+   * 测试模型调用
+   * @param {string} prompt - 输入的提示词
+   * @returns {Promise<{success: boolean, response?: string, error?: string}>}
+   */
+  async testModel(prompt) {
+    return await apiService.testModel({
+      prompt
+    });
   }
 };
