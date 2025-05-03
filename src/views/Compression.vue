@@ -1,100 +1,97 @@
 <template>
-                <!-- 上传区域 -->
-                <div class="bg-white rounded-lg shadow-sm p-8 mb-6">
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors"
-                        @dragover.prevent @drop.prevent="handleDrop" @click="triggerFileInput">
-                        <input type="file" ref="fileInput" class="hidden" multiple @change="handleFileChange" />
-                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
-                        <p class="text-gray-600">拖拽文件到此处或点击上传</p>
-                        <p class="text-gray-400 text-sm mt-2">支持 ZIP、RAR、7Z 等压缩文件格式</p>
+    <!-- 上传区域 -->
+    <div class="bg-white rounded-lg shadow-sm p-8 mb-6">
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors"
+            @dragover.prevent @drop.prevent="handleDrop" @click="triggerFileInput">
+            <input type="file" ref="fileInput" class="hidden" multiple @change="handleFileChange" />
+            <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+            <p class="text-gray-600">拖拽文件到此处或点击上传</p>
+            <p class="text-gray-400 text-sm mt-2">支持 ZIP、RAR、7Z 等压缩文件格式</p>
+        </div>
+    </div>
+    <!-- 文件列表 -->
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-medium">文件列表</h2>
+            <div class="flex space-x-2">
+                <button class="px-4 py-2 bg-blue-500 text-white !rounded-button whitespace-nowrap hover:bg-blue-600">
+                    全部压缩
+                </button>
+                <button class="px-4 py-2 border border-gray-300 !rounded-button whitespace-nowrap hover:bg-gray-50">
+                    清空列表
+                </button>
+            </div>
+        </div>
+        <div class="space-y-4">
+            <div v-for="file in fileList" :key="file.id"
+                class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-file-archive text-blue-500 text-xl"></i>
+                    <div>
+                        <p class="font-medium">{{ file.name }}</p>
+                        <p class="text-sm text-gray-500">{{ file.size }}</p>
                     </div>
                 </div>
-                <!-- 文件列表 -->
-                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-medium">文件列表</h2>
-                        <div class="flex space-x-2">
-                            <button
-                                class="px-4 py-2 bg-blue-500 text-white !rounded-button whitespace-nowrap hover:bg-blue-600">
-                                全部压缩
-                            </button>
-                            <button
-                                class="px-4 py-2 border border-gray-300 !rounded-button whitespace-nowrap hover:bg-gray-50">
-                                清空列表
-                            </button>
+                <div class="flex items-center space-x-4">
+                    <div class="w-32">
+                        <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-blue-500 transition-all duration-300"
+                                :style="{ width: `${file.progress}%` }"></div>
                         </div>
                     </div>
-                    <div class="space-y-4">
-                        <div v-for="file in fileList" :key="file.id"
-                            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                            <div class="flex items-center space-x-3">
-                                <i class="fas fa-file-archive text-blue-500 text-xl"></i>
-                                <div>
-                                    <p class="font-medium">{{ file.name }}</p>
-                                    <p class="text-sm text-gray-500">{{ file.size }}</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4">
-                                <div class="w-32">
-                                    <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                        <div class="h-full bg-blue-500 transition-all duration-300"
-                                            :style="{ width: `${file.progress}%` }"></div>
-                                    </div>
-                                </div>
-                                <span class="text-sm text-gray-600">{{ file.progress }}%</span>
-                                <button class="text-red-500 hover:text-red-600">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </div>
-                        </div>
+                    <span class="text-sm text-gray-600">{{ file.progress }}%</span>
+                    <button class="text-red-500 hover:text-red-600">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- AI 分析结果 -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-lg font-medium mb-4">AI 分析建议</h2>
+        <div class="space-y-4">
+            <!-- 思考状态 -->
+            <div class="p-4 bg-gray-50 rounded-lg flex justify-between items-center">
+                <span class="text-gray-600">正在思考</span>
+                <i class="fas fa-circle-notch fa-spin text-blue-500"></i>
+            </div>
+            <!-- 生成状态 -->
+            <div class="p-4 bg-gray-50 rounded-lg flex justify-between items-center">
+                <span class="text-gray-600">正在生成压缩方案</span>
+                <i class="fas fa-circle-notch fa-spin text-blue-500"></i>
+            </div>
+            <!-- 实时输出 -->
+            <div class="p-6 bg-blue-50 rounded-lg border border-blue-100">
+                <pre class="text-gray-700 font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ streamText }}</pre>
+                <div v-if="isStreaming" class="mt-3 flex items-center text-blue-500">
+                    <i class="fas fa-circle-notch fa-spin mr-2"></i>
+                    <span class="text-sm">正在分析...</span>
+                </div>
+            </div>
+            <!-- 压缩方案列表 -->
+            <div v-for="(result, index) in aiResults" :key="index" class="p-4 bg-blue-50 rounded-lg">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-medium text-blue-700">{{ result.title }}</h3>
+                        <p class="text-gray-600 mt-2">{{ result.description }}</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button
+                            class="px-4 py-2 bg-blue-500 text-white !rounded-button whitespace-nowrap hover:bg-blue-600">
+                            应用方案
+                        </button>
+                        <button
+                            class="px-4 py-2 border border-gray-300 !rounded-button whitespace-nowrap hover:bg-gray-50"
+                            @click="showEditDialog = true">
+                            编辑方案
+                        </button>
                     </div>
                 </div>
-                <!-- AI 分析结果 -->
-                <div class="bg-white rounded-lg shadow-sm p-6">
-                    <h2 class="text-lg font-medium mb-4">AI 分析建议</h2>
-                    <div class="space-y-4">
-                        <!-- 思考状态 -->
-                        <div class="p-4 bg-gray-50 rounded-lg flex justify-between items-center">
-                            <span class="text-gray-600">正在思考</span>
-                            <i class="fas fa-circle-notch fa-spin text-blue-500"></i>
-                        </div>
-                        <!-- 生成状态 -->
-                        <div class="p-4 bg-gray-50 rounded-lg flex justify-between items-center">
-                            <span class="text-gray-600">正在生成压缩方案</span>
-                            <i class="fas fa-circle-notch fa-spin text-blue-500"></i>
-                        </div>
-                        <!-- 实时输出 -->
-                        <div class="p-6 bg-blue-50 rounded-lg border border-blue-100">
-                            <pre
-                                class="text-gray-700 font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ streamText }}</pre>
-                            <div v-if="isStreaming" class="mt-3 flex items-center text-blue-500">
-                                <i class="fas fa-circle-notch fa-spin mr-2"></i>
-                                <span class="text-sm">正在分析...</span>
-                            </div>
-                        </div>
-                        <!-- 压缩方案列表 -->
-                        <div v-for="(result, index) in aiResults" :key="index" class="p-4 bg-blue-50 rounded-lg">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h3 class="font-medium text-blue-700">{{ result.title }}</h3>
-                                    <p class="text-gray-600 mt-2">{{ result.description }}</p>
-                                </div>
-                                <div class="flex space-x-2">
-                                    <button
-                                        class="px-4 py-2 bg-blue-500 text-white !rounded-button whitespace-nowrap hover:bg-blue-600">
-                                        应用方案
-                                    </button>
-                                    <button
-                                        class="px-4 py-2 border border-gray-300 !rounded-button whitespace-nowrap hover:bg-gray-50"
-                                        @click="showEditDialog = true">
-                                        编辑方案
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                    <!-- 编辑压缩方案弹窗 -->
+            </div>
+        </div>
+    </div>
+    <!-- 编辑压缩方案弹窗 -->
     <div v-if="showEditDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg w-[600px] shadow-xl">
             <div class="p-6 border-b border-gray-200">
@@ -152,11 +149,11 @@
         </div>
     </div>
 </template>
-<script  lang="ts" setup>
+<script lang="ts" setup>
 import { ref, onUnmounted, reactive, computed } from 'vue';
 // 组件逻辑将在这里实现
 const fileInput = ref<HTMLInputElement | null>(null);
-    const showEditDialog = ref(false);
+const showEditDialog = ref(false);
 const compressionAlgorithms = [
     { value: 'zstd', label: 'Zstandard (高压缩比)' },
     { value: 'lzma2', label: 'LZMA2 (超高压缩比)' },
@@ -279,6 +276,4 @@ onUnmounted(() => {
     }
 });
 </script>
-<style scoped>
-
-</style>
+<style scoped></style>

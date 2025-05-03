@@ -4,7 +4,6 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import ModelConfig, ModelCallRecord
 from .serializers import ModelConfigSerializer, ModelCallRecordSerializer
-from .utils import ModelInvoker
 import requests
 from django.utils import timezone
 from asgiref.sync import sync_to_async
@@ -131,37 +130,4 @@ class ModelTestView(APIView):
     permission_classes = [IsAuthenticated]
 
     async def post(self, request):
-        """测试模型调用接口"""
-        prompt = request.data.get('prompt')
-        if not prompt:
-            return Response({'success': False, 'error': '请输入prompt'},
-                          status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            invoker = ModelInvoker.get_instance()
-            response = await invoker.invoke(
-                prompt=prompt,
-                system_message="你是一个有帮助的AI助手"
-            )
-            
-            # 记录调用
-            ModelCallRecord.objects.create(
-                config=ModelConfig.objects.filter(
-                    user=request.user,
-                    model_type='deepseek'
-                ).first(),
-                response_time=0,  # 实际使用时应该计算
-                success=True,
-                prompt=prompt[:500],  # 截断避免过长
-                response=response[:1000]
-            )
-            
-            return Response({
-                'success': True,
-                'response': response
-            })
-        except Exception as e:
-            return Response({
-                'success': False,
-                'error': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        pass
