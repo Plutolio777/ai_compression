@@ -11,10 +11,10 @@
 
       <!-- 主体 -->
       <div class="p-6">
-        <!-- 当前路径 -->
-        <div class="mb-4 text-sm text-gray-600">
-          当前路径: /{{ currentPath.join('/') }}
-        </div>
+  <!-- 当前路径 -->
+  <div v-if="parentId" class="mb-4 text-sm text-gray-600">
+    当前文件夹ID: {{ parentId }}
+  </div>
 
         <!-- 拖放区域 -->
         <div 
@@ -105,8 +105,14 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
-import apiService from '@/api/apiService'
+import { ref } from 'vue'
+import apiService from '../api/apiService'
+
+declare global {
+  interface Window {
+    uploadedFiles?: Array<{name: string, size: number}>
+  }
+}
 
 interface UploadFile {
   id: string
@@ -119,9 +125,9 @@ interface UploadFile {
 
 const props = defineProps({
   show: Boolean,
-  currentPath: {
-    type: Array as () => string[],
-    default: () => []
+  parentId: {
+    type: String,
+    default: null
   }
 })
 
@@ -219,30 +225,13 @@ const startUpload = async () => {
   emit('upload-success')
 }
 
-    const getParentId = async () => {
-      if (props.currentPath.length === 0) return null
-      
-      try {
-        const response = await apiService.getFileTree({
-          path: props.currentPath.join('/')
-        })
-        if (response.success && response.data.length > 0) {
-          return response.data[0].id
-        }
-      } catch (error) {
-        console.error('获取父目录ID失败:', error)
-      }
-      return null
-    }
-
     const uploadFile = async (file: UploadFile) => {
-        const parentId = await getParentId()
         const uploadData = {
             file: file.file
         }
         
-        if (parentId !== null) {
-            uploadData.parent_id = parentId
+        if (props.parentId) {
+            uploadData.parent_id = props.parentId
         }
         
         try {

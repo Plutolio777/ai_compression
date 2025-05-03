@@ -355,7 +355,7 @@
   <UploadModal
     v-if="showUploadModal"
     :show="showUploadModal"
-    :current-path="currentPath"
+    :parent-id="idStack.length > 0 ? idStack[idStack.length - 1] : null"
     @close="showUploadModal = false"
     @upload-success="handleUploadSuccess"
   />
@@ -387,7 +387,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted, reactive, computed, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, reactive, computed, nextTick, watch } from "vue";
 import UploadModal from "../components/UploadModal.vue";
 import CreateFolderModal from "../components/CreateFolderModal.vue";
 import TagSelector from "../components/TagSelector.vue";
@@ -448,6 +448,11 @@ const fetchFiles = async () => {
 
 // 初始化加载文件列表
 onMounted(() => {
+  fetchFiles();
+});
+
+// 监听搜索词变化
+watch(searchQuery, () => {
   fetchFiles();
 });
 const returnToLastLevel = () => {
@@ -588,7 +593,6 @@ const handleCreateFolderSuccess = () => {
   fetchFiles(); // 使用fetchFiles而不是refreshFileList保持一致性
   showCreateFolderModal.value = false;
 };
-
 
 const resetToRoot = () => {
   currentPath.value = [];
