@@ -611,15 +611,29 @@ const getFileColor = (filename: string) => {
   const type = getFileExtension(filename);
   return colorMap[type] || "#757575";
 };
+const clickTimer = ref<NodeJS.Timeout | null>(null);
+const clickDelay = 200; // 200ms延迟
+
 const toggleFileSelection = (fileId: number) => {
-  const index = selectedFiles.value.indexOf(fileId);
-  if (index === -1) {
-    selectedFiles.value = [fileId];
-    selectedFile.value = files.value.find(f => f.id === fileId);
-  } else {
-    selectedFiles.value.splice(index, 1);
-    selectedFile.value = null;
+  // 清除之前的计时器
+  if (clickTimer.value) {
+    clearTimeout(clickTimer.value);
+    clickTimer.value = null;
+    return;
   }
+
+  // 设置新的计时器
+  clickTimer.value = setTimeout(() => {
+    const index = selectedFiles.value.indexOf(fileId);
+    if (index === -1) {
+      selectedFiles.value = [fileId];
+      selectedFile.value = files.value.find(f => f.id === fileId);
+    } else {
+      selectedFiles.value.splice(index, 1);
+      selectedFile.value = null;
+    }
+    clickTimer.value = null;
+  }, clickDelay);
 };
 
 const contextMenuFile = ref(null);
@@ -652,6 +666,12 @@ const navigateTo = (index: number) => {
 };
 
 const handleFileDoubleClick = async (file: any) => {
+  // 清除单击事件的计时器
+  if (clickTimer.value) {
+    clearTimeout(clickTimer.value);
+    clickTimer.value = null;
+  }
+
   if (file.type === "folder") {
     console.log("双击文件夹:", file.name);
     currentPath.value = [...currentPath.value, file.name];
