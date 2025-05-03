@@ -358,12 +358,32 @@ const apiConfig = {
     url: '/api/tags/:id/',
     requiresAuth: true
   },
-    refreshToken: {
-        method: 'POST',
-        url: '/api/auth/refresh/',
-        isFileUpload: false,
-        requiresAuth: false
-    }
+  refreshToken: {
+    method: 'POST',
+    url: '/api/auth/refresh/',
+    isFileUpload: false,
+    requiresAuth: false
+  },
+  // 压缩相关API
+  uploadFile: {
+    method: 'POST',
+    url: '/api/compression/upload/',
+    isFileUpload: true,
+    fileKey: 'file',
+    requiresAuth: true
+  },
+  getCompressionAnalysis: {
+    method: 'POST',
+    url: '/api/compression/analyze/',
+    isFileUpload: false,
+    requiresAuth: true
+  },
+  getTaskStatus: {
+    method: 'GET',
+    url: '/api/compression/task/:task_id/',
+    isFileUpload: false,
+    requiresAuth: true
+  }
 };
 
 // 生成 API 请求函数

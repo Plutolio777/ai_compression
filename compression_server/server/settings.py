@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'tag_manager',
     'account.apps.AccountConfig',
     'file_manager.apps.FileManagerConfig',
-    'model_manager.apps.ModelManagerConfig'
+    'model_manager.apps.ModelManagerConfig',
+    'compression_manager.apps.CompressionManagerConfig'
 ]
 
 AUTH_USER_MODEL = 'account.User'

@@ -14,10 +14,10 @@
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-medium">文件列表</h2>
             <div class="flex space-x-2">
-                <button class="px-4 py-2 bg-blue-500 text-white !rounded-button whitespace-nowrap hover:bg-blue-600">
-                    全部压缩
+                <button class="px-4 py-2 bg-blue-500 text-white !rounded-button whitespace-nowrap hover:bg-blue-600" @click="generateCompressionPlan">
+                    一键生成压缩方案
                 </button>
-                <button class="px-4 py-2 border border-gray-300 !rounded-button whitespace-nowrap hover:bg-gray-50">
+                <button class="px-4 py-2 border border-gray-300 !rounded-button whitespace-nowrap hover:bg-gray-50" @click="clearFileList">
                     清空列表
                 </button>
             </div>
@@ -33,14 +33,28 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <div class="w-32">
-                        <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div class="h-full bg-blue-500 transition-all duration-300"
-                                :style="{ width: `${file.progress}%` }"></div>
+                    <template v-if="file.status === 'pending'">
+                        <div class="flex items-center text-gray-400">
+                            <i class="fas fa-clock mr-2"></i>
+                            <span class="text-sm">未上传</span>
                         </div>
-                    </div>
-                    <span class="text-sm text-gray-600">{{ file.progress }}%</span>
-                    <button class="text-red-500 hover:text-red-600">
+                    </template>
+                    <template v-else-if="file.status === 'uploading'">
+                        <div class="w-32">
+                            <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-500 transition-all duration-300"
+                                    :style="{ width: `${file.progress}%` }"></div>
+                            </div>
+                        </div>
+                        <span class="text-sm text-gray-600">{{ file.progress }}%</span>
+                    </template>
+                    <template v-else-if="file.status === 'success'">
+                        <div class="flex items-center text-green-500">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <span class="text-sm">上传成功</span>
+                        </div>
+                    </template>
+                    <button class="text-red-500 hover:text-red-600" @click="removeFile(file.id)">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -150,8 +164,81 @@
     </div>
 </template>
 <script lang="ts" setup>
-import { ref, onUnmounted, reactive, computed } from 'vue';
+import { ref, onUnmounted } from 'vue';
+import apiService from '../api/apiService';
+import { ElMessageBox } from 'element-plus';
+
+interface FileItem {
+  id: string;
+  name: string;
+  size: string;
+  progress: number;
+  status: 'pending' | 'uploading' | 'success' | 'failed';
+  showAlgorithmList?: boolean;
+  selectedAlgorithm?: string;
+  file?: File;
+}
+
 // 组件逻辑将在这里实现
+const generateCompressionPlan = async () => {
+  if (fileList.value.length === 0) return;
+  
+  if (!currentTaskId.value) {
+    currentTaskId.value = crypto.randomUUID();
+  }
+  
+  // 更新所有文件状态为上传中
+  fileList.value.forEach(file => {
+    file.status = 'uploading';
+    file.progress = 0;
+  });
+
+  // 批量上传文件
+  const uploadPromises = fileList.value.map(file => {
+    return apiService.uploadFile(
+      { 
+        file: file.file,
+        task_id: currentTaskId.value 
+      },
+      {},
+      {},
+      {},
+      {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            file.progress = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+          }
+        }
+      }
+    ).then(response => {
+      if (response.success) {
+        file.status = 'success';
+      } else {
+        file.status = 'failed';
+      }
+      return response;
+    }).catch(error => {
+      file.status = 'failed';
+      throw error;
+    });
+  });
+
+  try {
+    await Promise.all(uploadPromises);
+    // 所有文件上传完成后获取AI分析结果
+    // todo
+    // const analysisResponse = await apiService.getCompressionAnalysis({
+    //   task_id: currentTaskId.value
+    // });
+    // if (analysisResponse.success) {
+    //   aiResults.value = analysisResponse.data.results;
+    // }
+  } catch (error) {
+    console.error('文件上传失败:', error);
+  }
+};
 const fileInput = ref<HTMLInputElement | null>(null);
 const showEditDialog = ref(false);
 const compressionAlgorithms = [
@@ -161,32 +248,8 @@ const compressionAlgorithms = [
     { value: 'deflate', label: 'Deflate (通用压缩)' },
     { value: 'bzip2', label: 'BZip2 (高压缩比)' }
 ];
-const fileList = ref([
-    {
-        id: 1,
-        name: '项目文档集合.zip',
-        size: '2.5 GB',
-        progress: 75,
-        showAlgorithmList: false,
-        selectedAlgorithm: ''
-    },
-    {
-        id: 2,
-        name: '产品设计资源.rar',
-        size: '1.8 GB',
-        progress: 90,
-        showAlgorithmList: false,
-        selectedAlgorithm: ''
-    },
-    {
-        id: 3,
-        name: '视频素材备份.7z',
-        size: '4.2 GB',
-        progress: 30,
-        showAlgorithmList: false,
-        selectedAlgorithm: ''
-    }
-]);
+const fileList = ref<FileItem[]>([]);
+const currentTaskId = ref('');
 // 选择压缩算法
 const selectAlgorithm = (file: any, algorithm: string) => {
     file.selectedAlgorithm = algorithm;
@@ -201,7 +264,7 @@ const applyCompressionSettings = () => {
         file.showAlgorithmList = false;
     });
 };
-const aiResults = [
+const aiResults = ref([
     {
         title: '推荐压缩方案 A',
         description: '使用 ZSTD 算法进行压缩，预计可节省 60% 存储空间，适用于当前上传的文档类型文件。压缩后预计文件大小约为 1.0 GB。'
@@ -210,22 +273,97 @@ const aiResults = [
         title: '推荐压缩方案 B',
         description: '采用分块压缩策略，每块大小设置为 128MB，可实现并行处理提升压缩速度。预计耗时 5 分钟，压缩率可达 70%。'
     }
-];
+]);
 const triggerFileInput = () => {
     fileInput.value?.click();
 };
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
 const handleFileChange = (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    if (target.files) {
-        // 处理文件上传逻辑
+  const target = event.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    if (!currentTaskId.value) {
+      currentTaskId.value = crypto.randomUUID();
     }
+    
+    Array.from(target.files).forEach(file => {
+      fileList.value.push({
+        id: Math.random().toString(36).substring(2, 9),
+        name: file.name,
+        size: formatFileSize(file.size),
+        progress: 0,
+        status: 'pending',
+        file
+      });
+    });
+  }
 };
+
 const handleDrop = (event: DragEvent) => {
-    const files = event.dataTransfer?.files;
-    if (files) {
-        // 处理拖拽上传逻辑
+  event.preventDefault();
+  const files = event.dataTransfer?.files;
+  if (files && files.length > 0) {
+    if (!currentTaskId.value) {
+      currentTaskId.value = crypto.randomUUID();
     }
+    
+    Array.from(files).forEach(file => {
+      fileList.value.push({
+        id: Math.random().toString(36).substring(2, 9),
+        name: file.name,
+        size: formatFileSize(file.size),
+        progress: 0,
+        status: 'pending',
+        file
+      });
+    });
+  }
 };
+
+const removeFile = async (id: string) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这个文件吗？',
+      '确认删除',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+    fileList.value = fileList.value.filter(file => file.id !== id);
+    if (fileList.value.length === 0) {
+      currentTaskId.value = '';
+    }
+  } catch {
+    // 用户点击取消
+  }
+};
+
+const clearFileList = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要清空所有文件吗？',
+      '确认清空',
+      {
+        confirmButtonText: '清空',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+    fileList.value = [];
+    currentTaskId.value = '';
+  } catch {
+    // 用户点击取消
+  }
+};
+
 const streamText = ref('');
 const isStreaming = ref(false);
 let streamInterval: number | null = null;
