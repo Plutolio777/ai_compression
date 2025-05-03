@@ -777,10 +777,10 @@ const getTagColor = (importance) => {
 
 const removeTag = async (fileId, tagId) => {
   try {
-    const response = await apiService.removeTag(
+    const response = await apiService.removeFileTag(
+      { tag_id: tagId },
       {},
-      {},
-      { id: fileId, tag_id: tagId }
+      { id: fileId }
     );
     if (response.success) {
       // 更新本地文件标签数据

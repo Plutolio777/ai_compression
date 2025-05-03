@@ -39,5 +39,5 @@ class Tag(models.Model):
 
     def update_file_count(self):
         """更新关联文件数"""
-        self.file_count = self.file_set.count()
+        self.file_count = self.files.count()
         self.save()
