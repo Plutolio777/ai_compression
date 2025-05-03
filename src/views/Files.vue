@@ -285,10 +285,40 @@
               </template>
             </template>
           </div>
+
         </div>
-        <!-- 文件信息 -->
+
+        <!-- 文件信息展示区 -->
+        <div class="mt-4 space-y-2" v-if="selectedFile">
+              <div class="flex items-center">
+                <i :class="getFileIcon(selectedFile.name)" 
+                    class="mr-2"
+                    :style="{ color: getFileColor(selectedFile.name) }"></i>
+                <h4 class="text-lg font-medium truncate">{{ selectedFile.name }}</h4>
+              </div>
+              <p class="text-sm text-gray-500">{{ selectedFile.size }}</p>
+              <!-- 标签展示区 -->
+              <div class="flex items-center overflow-x-auto py-1 gap-1 no-scrollbar">
+                <template v-for="tag in selectedFile.tags" :key="tag.id">
+                  <span
+                    class="px-2 py-1 text-xs rounded whitespace-nowrap"
+                    :style="{
+                      backgroundColor: getTagColor(tag.importance) + '20',
+                      color: getTagColor(tag.importance),
+                      border: `1px solid ${getTagColor(tag.importance)}`,
+                    }"
+                  >
+                    {{ tag.name }}
+                  </span>
+                </template>
+                <span v-if="!selectedFile.tags?.length" class="text-xs text-gray-400">
+                  暂无标签
+                </span>
+              </div>
+        </div>
+        <!-- 文件详情信息 -->
         <div>
-          <h3 class="text-lg font-medium mb-4">文件信息</h3>
+          <h3 class="text-lg font-medium mb-4">文件详情</h3>
           <div class="space-y-3">
             <div>
               <p class="text-sm text-gray-500">存储路径</p>
@@ -419,6 +449,7 @@ const idStack = ref([]);
 // 确保初始化时加载根目录
 
 const selectedFiles = ref<number[]>([]);
+const selectedFile = ref(null);
 const showMenu = ref(false);
 const menuPosition = ref({ x: 0, y: 0 });
 const files = ref([]);
@@ -529,13 +560,14 @@ const selectedFilePath = computed(() => {
   const pathStr = currentPath.value.join("/");
   return pathStr ? `/${pathStr}/` : "/";
 });
-const getFileExtension = (filename: string) => {
+const getFileExtension = (filename?: string) => {
+  if (!filename) return "file";
   if (filename === "folder") return "folder";
   const parts = filename.split(".");
   return parts.length > 1 ? parts.pop()?.toLowerCase() || "file" : "file";
 };
 
-const getFileIcon = (filename: string) => {
+const getFileIcon = (filename?: string) => {
   const type = getFileExtension(filename);
   return iconMap[type] || "fas fa-file";
 };
@@ -547,10 +579,13 @@ const toggleFileSelection = (fileId: number) => {
   const index = selectedFiles.value.indexOf(fileId);
   if (index === -1) {
     selectedFiles.value = [fileId];
+    selectedFile.value = files.value.find(f => f.id === fileId);
   } else {
     selectedFiles.value.splice(index, 1);
+    selectedFile.value = null;
   }
 };
+
 const contextMenuFile = ref(null);
 
 const showContextMenu = (event: MouseEvent, file: any) => {
