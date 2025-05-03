@@ -76,16 +76,23 @@
                             <!-- 标签区域 -->
                             <div class="absolute top-2 right-2 grid grid-auto-flow-row gap-y-1 justify-items-end">
                                 <template v-for="tag in file.tags" :key="tag.id">
-                                    <span
-                                        class="px-1.5 py-0.5 text-xs rounded truncate w-fit max-w-[48px]"
+                                    <div 
+                                        class="flex items-center px-1.5 py-0.5 text-xs rounded truncate w-fit max-w-[48px]"
                                         :style="{
                                             backgroundColor: getTagColor(tag.importance) + '20',
                                             color: getTagColor(tag.importance)
                                         }"
                                         :title="tag.name"
                                     >
-                                        {{ tag.name }}
-                                    </span>
+                                        <span class="truncate">{{ tag.name }}</span>
+                                        <button 
+                                            v-if="selectedFiles.includes(file.id)"
+                                            @click.stop="removeTag(file.id, tag.id)"
+                                            class="ml-1 text-gray-500 hover:text-red-500"
+                                        >
+                                            <i class="fas fa-times text-xs"></i>
+                                        </button>
+                                    </div>
                                 </template>
                             </div>
                         </div>
