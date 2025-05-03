@@ -351,7 +351,15 @@
             <!-- 归档策略展示区 -->
             <div>
               <p class="text-sm text-gray-500">归档策略</p>
-              <p class="text-sm font-medium">标准存储</p>
+              <div class="flex items-center">
+                <p class="text-sm font-medium">
+                  {{ selectedFile.storage_type_display || '标准存储' }}
+                </p>
+                <i v-if="selectedFile.storage_type === 'standard'" class="fas fa-server text-blue-500 ml-2"></i>
+                <i v-else-if="selectedFile.storage_type === 'hive'" class="fas fa-database text-purple-500 ml-2"></i>
+                <i v-else-if="selectedFile.storage_type === 'hbase'" class="fas fa-table text-orange-500 ml-2"></i>
+                <i v-else-if="selectedFile.storage_type === 'cloud'" class="fas fa-cloud text-blue-400 ml-2"></i>
+              </div>
             </div>
           </div>
         </div>
