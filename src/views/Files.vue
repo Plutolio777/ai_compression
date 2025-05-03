@@ -102,7 +102,7 @@
               >
                 <template v-for="tag in file.tags" :key="tag.id">
                   <div
-                    class="flex items-center px-1.5 py-0.5 text-xs rounded truncate w-fit max-w-[48px]"
+                    class="flex items-center px-1.5 py-0.5 text-xs rounded truncate w-fit max-w-[64px]"
                     :style="{
                       backgroundColor: getTagColor(tag.importance) + '20',
                       color: getTagColor(tag.importance),
@@ -181,7 +181,10 @@
                         </button>
                       </span>
                     </template>
-                    <span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
+                    <span 
+                      v-if="file.tags.length > 3"
+                      class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded"
+                    >
                       +{{ file.tags.length - 3 }}
                     </span>
                   </div>
