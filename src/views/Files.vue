@@ -366,6 +366,7 @@
         <!-- 操作按钮 -->
         <div class="flex flex-col space-y-2">
           <button
+            v-if="selectedFile.type !== 'folder'"
             class="!rounded-button w-full px-4 py-2 bg-blue-500 text-white hover:bg-blue-600"
             @click="downloadFile"
           >
@@ -390,19 +391,24 @@
       </div>
     </div>
   </div>
+
   <!-- 右键菜单 -->
   <div
     v-if="showMenu"
     class="fixed bg-white shadow-lg rounded-lg py-2 z-50"
     :style="{ top: menuPosition.y + 'px', left: menuPosition.x + 'px' }"
   >
-    <button class="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
+    <button 
+      v-if="contextMenuFile?.type !== 'folder'"
+      class="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
+    >
       <i class="fas fa-download mr-2"></i> 下载
     </button>
     <button class="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm">
       <i class="fas fa-share-alt mr-2"></i> 分享
     </button>
     <button
+      v-if="contextMenuFile?.type !== 'folder'"
       class="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
       @click.stop="handleAddTagClick"
     >
@@ -619,19 +625,25 @@ const toggleFileSelection = (fileId: number) => {
 const contextMenuFile = ref(null);
 
 const showContextMenu = (event: MouseEvent, file: any) => {
-  event.preventDefault();
   console.log("显示右键菜单，文件:", file);
   contextMenuFile.value = file;
   menuPosition.value = {
     x: event.clientX,
     y: event.clientY,
   };
+  console.log(menuPosition)
   showMenu.value = true;
-  if (!selectedFiles.value.includes(file.id)) {
-    selectedFiles.value = [file.id];
+  const index = selectedFiles.value.indexOf(fileId);
+  if (index === -1) {
+    selectedFiles.value = [fileId];
+    selectedFile.value = files.value.find(f => f.id === fileId);
+  } else {
+    selectedFiles.value.splice(index, 1);
+    selectedFile.value = null;
   }
   console.log("当前选中文件:", selectedFiles.value);
 };
+
 const navigateTo = (index: number) => {
   currentPath.value = currentPath.value.slice(0, index + 1);
   idStack.value = idStack.value.slice(0, index + 1);
