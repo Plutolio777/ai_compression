@@ -26,12 +26,18 @@ class TempUploadedFile(models.Model):
     file = models.FileField(upload_to=get_upload_path)
     original_name = models.CharField(max_length=255)
     size = models.BigIntegerField()
+    type = models.CharField(max_length=50, blank=True, default='')
     upload_time = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, default='uploading', choices=[
         ('uploading', '上传中'),
-        ('uploaded', '上传完成'),
+        ('uploaded', '上传完成'), 
         ('failed', '上传失败')
     ])
+
+    def save(self, *args, **kwargs):
+        if not self.type:
+            self.type = self.original_name.split('.')[-1].upper()
+        super().save(*args, **kwargs)
 
     class Meta:
         db_table = 'temp_uploaded_files'

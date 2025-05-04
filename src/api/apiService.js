@@ -137,7 +137,7 @@ function handleFileUpload(data, isFileUpload, fileKey) {
 
 // 统一的请求方法，处理所有不同的请求
 // 统一的请求方法，处理所有不同的请求
-async function request({method, url, data, params, pathParams, headers, isFileUpload, fileKey, requiresAuth, ...config}) {
+async function request({method, url, data, params, pathParams, headers, isFileUpload, fileKey, requiresAuth, isStreaming = false, ...config}) {
     // 替换路径参数
     if (pathParams) {
         Object.keys(pathParams).forEach((key) => {
@@ -166,30 +166,39 @@ async function request({method, url, data, params, pathParams, headers, isFileUp
         ...config
     };
 
-    // return await instance(config);
     try {
         // 发起请求
-        const response = await instance(axiosConfig);
-        // console.log(123, response);
-        // 可以根据需求对返回的数据进行处理（例如统一格式化）
-        if (200 <= response.status && response.status < 300) {
-            // 假设所有响应都包含一个 `data` 字段
+        if (isStreaming) {
+            const response = await instance({
+                ...axiosConfig,
+                responseType: 'stream'
+            });
+            
+            // 返回流式读取器
             return {
                 success: true,
-                data: response.data,
-            };
-        } else if (response.status === 201) {
-            // 处理201 Created响应
-            return {
-                success: true,
-                data: response.data,
+                stream: response.data
             };
         } else {
-            // 如果返回的状态码不是 200，返回错误信息
-            return {
-                success: false,
-                error: `请求失败，状态码: ${response.status}`,
-            };
+            const response = await instance(axiosConfig);
+            if (200 <= response.status && response.status < 300) {
+                return {
+                    success: true,
+                    data: response.data,
+                };
+            } else if (response.status === 201) {
+                // 处理201 Created响应
+                return {
+                    success: true,
+                    data: response.data,
+                };
+            } else {
+                // 如果返回的状态码不是 200，返回错误信息
+                return {
+                    success: false,
+                    error: `请求失败，状态码: ${response.status}`,
+                };
+            }
         }
     } catch (error) {
         // 捕获请求错误
@@ -376,7 +385,8 @@ const apiConfig = {
     method: 'POST',
     url: '/api/compression/analyze/',
     isFileUpload: false,
-    requiresAuth: true
+    requiresAuth: true,
+    isStreaming: true  // 标记为流式接口
   },
   getTaskStatus: {
     method: 'GET',
@@ -397,9 +407,10 @@ function createApiMethods(config) {
             isFileUpload: false,
             fileKey: "",
             requiresAuth: true,
+            isStreaming: false
         }
         const finalConfig = Object.assign({}, defaultConfig, config[apiName]);
-        const {method, url, isFileUpload, fileKey, requiresAuth} = finalConfig;
+        const {method, url, isFileUpload, fileKey, requiresAuth, isStreaming} = finalConfig;
         apiMethods[apiName] = async (data = {}, params = {}, pathParams = {}, headers = {}, config = {}) => {
             // console.log(`api request ${apiName} from url ${url}`);
             return await request({
@@ -412,6 +423,7 @@ function createApiMethods(config) {
                 isFileUpload,
                 fileKey,
                 requiresAuth,
+                isStreaming,
                 ...config
             });
         };

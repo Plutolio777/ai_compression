@@ -305,6 +305,18 @@ class MP3Compressor(BaseCompressor):
     def decompress(self, input_path: str, output_path: str, **kwargs) -> str:
         raise NotImplementedError("有损压缩不支持无损解压")
 
+@register_compression("None")
+class NoneCompressor(BaseCompressor):
+    """无需压缩 音频压缩"""
+
+    def compress(self, input_path: str, output_path: str, bitrate: str = '128k', **kwargs) -> str:
+        
+        return output_path
+
+    def decompress(self, input_path: str, output_path: str, **kwargs) -> str:
+        return output_path
+
+
 # ------------------- 使用示例 -------------------
 if __name__ == '__main__':
     print(register.registry)
