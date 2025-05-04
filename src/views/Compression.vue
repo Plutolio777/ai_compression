@@ -206,12 +206,19 @@ const isAnalyzing = ref(false);
 const generatShow = ref(false);
 const isGenerating = ref(false);
 const compressionAlgorithms = [
-  { value: 'zstd', label: 'Zstandard (高压缩比)' },
-  { value: 'lzma2', label: 'LZMA2 (超高压缩比)' },
-  { value: 'lz4', label: 'LZ4 (快速压缩)' },
-  { value: 'deflate', label: 'Deflate (通用压缩)' },
-  { value: 'bzip2', label: 'BZip2 (高压缩比)' },
-  { value: 'bzip2', label: 'BZip2 (高压缩比)' }
+  { value: 'DEFLATE/zlib', label: 'DEFLATE/zlib (通用压缩)' },
+  { value: 'GZIP', label: 'GZIP (标准压缩)' },
+  { value: 'BZip2', label: 'BZip2 (高压缩比)' },
+  { value: 'LZMA/XZ', label: 'LZMA/XZ (超高压缩比)' },
+  { value: 'LZ4', label: 'LZ4 (极速压缩)' },
+  { value: 'ZStandard', label: 'ZStandard (高性能压缩)' },
+  { value: 'Snappy', label: 'Snappy (快速压缩)' },
+  { value: 'Brotli', label: 'Brotli (Web优化压缩)' },
+  { value: 'LZO', label: 'LZO (快速压缩)' },
+  { value: 'Zopfli', label: 'Zopfli (优化DEFLATE)' },
+  { value: 'WebP', label: 'WebP (图像压缩)' },
+  { value: 'MP3', label: 'MP3 (音频压缩)' },
+  { value: 'None', label: '无需压缩' }
 ];
 const fileList = ref<FileItem[]>([]);
 const currentTaskId = ref('');

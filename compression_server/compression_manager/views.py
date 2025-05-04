@@ -137,6 +137,14 @@ def analysis_view(request):
                 title_index += 1
                 buffer = buffer[plans_end + 8:]
 
+            res_dict = {
+                "think": think,
+                "aiResults":aiPlanList,
+                "think_over": True,
+                "aiResultsOver": True
+            }
+            yield f'data: {json.dumps(res_dict)}\n\n'
+            
         response = StreamingHttpResponse(
             generate(), 
             content_type='text/event-stream',

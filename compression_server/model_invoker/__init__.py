@@ -107,11 +107,13 @@ class ModelInvoker:
             </plan>
             </plans>
             
-            注：
+            决策过程中请严格遵守以下约定：
             1.压缩算法只能从该列表中进行选择，返回方案时也使用同样的名称 %s
             2.生成的内容生动有趣 可以使用vue能够识别的小图标
             3.可以针对同一批文件给出多种不同的方案（plans）plans中的plan是针对每个文件的压缩方案 不要在同一个plans中针对统一文件提供不同的plan
             4.<compression></compression>中的压缩算法内容 请严格按照我提供的压缩算法列表的文本值为主
+            5.统一个<plans></plans>中不要出现 <file_name></file_name>相同的 <plan></plan>
+            6.<think></think> 方案选择的理由需要全面，专业，文本结构合理，思路清晰，可以使用icon进行点缀 需要包含的固定内容 a.文件分析报告 b.方案选择理由 c.预期结果
         """ % register.compression_list()
         self.llm = self._init_model()
 
