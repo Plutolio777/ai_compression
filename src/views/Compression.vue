@@ -1,4 +1,11 @@
 <template>
+  <head>
+  <!-- GitHub Markdown CSS -->
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/markdown-css@1.0.0/markdown.min.css"> -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css">
+  <!-- <link rel="stylesheet" href="https://casual-effects.com/markdeep/markdeep.min.css"> -->
+
+</head>
   <!-- 上传区域 -->
   <div class="bg-white rounded-lg shadow-sm p-8 mb-6">
     <div
@@ -77,7 +84,7 @@
 
       <!-- 实时输出 -->
       <div class="p-6 bg-blue-50 rounded-lg border border-blue-100">
-        <pre class="text-gray-700 font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ streamText }}</pre>
+        <div class="text-gray-700 text-sm markdown-container markdown-body" v-html="renderedMarkdown"></div>
         <div v-if="isStreaming" class="mt-3 flex items-center text-blue-500">
           <i v-if="isAnalyzing" class="fas fa-circle-notch mr-2 fa-spin"></i>
           <i v-else class="fas fa-check-circle mr-2 text-green-500"></i>
@@ -188,7 +195,12 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { ref, onUnmounted } from 'vue';
+import { ref, onUnmounted, computed } from 'vue';
+import { unified } from 'unified'
+import remarkParse from 'remark-parse'
+import remarkGfm from 'remark-gfm' // 支持表格、任务列表等
+import remarkRehype from 'remark-rehype' // 转换到HTML领域
+import rehypeStringify from 'rehype-stringify'
 import apiService from '../api/apiService';
 import { ElMessageBox } from 'element-plus';
 import store from '@/store'; 
@@ -448,24 +460,81 @@ const clearFileList = async () => {
 
 const streamText = ref('');
 const isStreaming = ref(false);
+const renderedMarkdown = computed(() => {
+  try {
+    return unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkRehype, {
+        // 保留段落空行
+        passThrough: ['blankLine'] 
+      })
+      .use(rehypeStringify, {
+        // 保留段落空行
+        passThrough: ['blankLine'] 
+      })
+      .processSync(streamText.value)
+      .toString();
+  } catch (e) {
+    console.error('Markdown渲染错误:', e);
+    return streamText.value;
+  }
+});
+
 let streamInterval: number | null = null;
 const startStreamText = () => {
   if (isStreaming.value) return;
   isStreaming.value = true;
   isAnalyzing.value = true
   streamText.value = '';
-  const fullText = `🤖 **SC-Pro 智能压缩系统** | 版本 2.1.5
-基于深度学习的自适应压缩引擎
-▌系统特性
-⚙️ 智能算法矩阵
-• 动态分析文件结构（文档/图像/代码优先策略）
-• 多目标优化：体积↓35-78% | 解压速度↑200%
-• 异常格式自动转换（支持47种格式互转）
+  const fullText = `# 🤖 SC-Pro 智能压缩系统 | 版本 2.1.5  
+*基于深度学习的自适应压缩引擎*
 
-▌操作协议
-1️⃣ [输入] 拖放文件至检测区（≤8TB）
-2️⃣ [诊断] 自动生成压缩方案报告
-3️⃣ [执行] 点击▼启动智能优化`;
+---
+
+## ▌ 系统特性
+
+### ⚙️ 智能算法矩阵
+
+- **动态分析引擎**  
+  - 文档/图像/代码优先策略  
+  - 异常格式自动转换（支持47种格式互转）  
+
+  
+- **多目标优化**  
+  - 体积缩减：35-78%  
+  - 解压速度提升：200%  
+
+### 🔐 安全架构  
+
+- 硬件级加密加速（AES-256 + SHA3）  
+- 内存数据焚毁机制  
+- 离线沙箱处理环境  
+
+---
+
+## ▌ 操作协议
+
+1. **📥 输入阶段**  
+   - 拖放文件至检测区（≤8TB）  
+   - 支持批量文件处理  
+
+2. **🩺 诊断阶段**  
+   - 自动生成压缩方案报告  
+   - 可视化预期压缩率曲线  
+
+3. **🚀 执行阶段**  
+   - 点击\`▼启动智能优化\`  
+   - 实时显示资源占用状态  
+
+---
+
+## ▌ 实时监控面板  
+| 指标            | 状态               |
+|-----------------|--------------------|
+| 内存占用        | 4.3/16.0 GB (27%)  |
+| CPU利用率       | 62%                |
+| 安全等级        | Tier-4 (NIST SP 800-111) |`;
 
   let currentIndex = 0;
   streamInterval = window.setInterval(() => {
@@ -489,4 +558,23 @@ onUnmounted(() => {
 });
 
 </script>
-<style scoped></style>
+<style scoped>
+
+:deep(.markdown-body) {
+  background-color: inherit; /* 继承父节点背景色 */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  color: #24292f;
+}
+
+:deep(.markdown-body h1, .markdown-body h2, .markdown-body h3) {
+  font-weight: 600;
+  color: #0366d6;
+}
+
+:deep(.markdown-body code) {
+  background-color: #f6f8fa;
+  border-radius: 3px;
+  padding: 0.2em 0.4em;
+  font-size: 85%;
+}
+</style>
