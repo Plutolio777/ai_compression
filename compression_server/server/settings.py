@@ -74,7 +74,8 @@ INSTALLED_APPS = [
     'account.apps.AccountConfig',
     'file_manager.apps.FileManagerConfig',
     'model_manager.apps.ModelManagerConfig',
-    'compression_manager.apps.CompressionManagerConfig'
+    'compression_manager.apps.CompressionManagerConfig',
+    'django_extensions'
 ]
 
 AUTH_USER_MODEL = 'account.User'

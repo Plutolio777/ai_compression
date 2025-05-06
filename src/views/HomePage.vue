@@ -115,9 +115,9 @@
 </template>
 
 <script setup lang="ts">
-import StatCard from '@/components/StatCard.vue';
-import PartnerLogo from '@/components/PartnerLogo.vue';
-import HeroBanner from '@/components/HeroBanner.vue';
-import StrengthCard from '@/components/StrengthCard.vue';
-import ClientCase from '@/components/ClientCase.vue';
+import StatCard from '../components/StatCard.vue';
+import PartnerLogo from '../components/PartnerLogo.vue';
+import HeroBanner from '../components/HeroBanner.vue';
+import StrengthCard from '../components/StrengthCard.vue';
+import ClientCase from '../components/ClientCase.vue';
 </script>

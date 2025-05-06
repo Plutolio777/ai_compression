@@ -1,0 +1,42 @@
+sequenceDiagram
+    participant Client as 客户端
+    participant View as 视图
+    participant Serializer as 序列化器
+    participant Model as 用户模型
+    participant Auth as 认证系统
+
+    %% 注册流程
+    rect rgb(200, 230, 200)
+    Client->>View: POST /register/ （用户注册）
+    View->>Serializer: 数据验证(RegisterSerializer)
+    Serializer->>Model: 创建用户
+    Model-->>Serializer: 用户对象
+    Serializer-->>View: 验证通过
+    View->>Serializer: 序列化用户(UserSerializer)
+    Serializer-->>View: 序列化数据
+    View-->>Client: 201 Created + 用户数据
+    end
+
+    %% 登录流程
+    rect rgb(200, 200, 230)
+    Client->>View: POST /login/ （用户登录）
+    View->>Serializer: 验证凭证(CustomTokenObtainPairSerializer)
+    Serializer->>Auth: 验证用户凭证
+    Auth-->>Serializer: 验证结果
+    Serializer->>Auth: 生成JWT令牌
+    Auth-->>Serializer: 访问令牌+刷新令牌
+    Serializer-->>View: 令牌数据
+    View-->>Client: 200 OK + JWT令牌
+    end
+
+    %% 获取用户信息
+    rect rgb(230, 200, 200)
+    Client->>View: GET /need auth api/ (JWT认证流程)
+    View->>Auth: 验证JWT令牌
+    Auth-->>View: 认证用户
+    View->>Model: 获取当前用户
+    Model-->>View: 用户对象
+    View->>Serializer: 序列化(UserSerializer)
+    Serializer-->>View: 序列化数据
+    View-->>Client: 200 OK + 用户数据
+    end
