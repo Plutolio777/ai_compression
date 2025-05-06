@@ -69,6 +69,9 @@ class ModelInvoker:
             <file_name>
             {文件名称}
             </file_name>
+            <file_size>
+            {文件大小}
+            </file_size>
             <compression>
             {压缩算法}
             </compression>
@@ -77,6 +80,9 @@ class ModelInvoker:
             <file_name>
             {文件名称}
             </file_name>
+            <file_size>
+            {文件大小}
+            </file_size>
             <compression>
             {压缩算法}
             </compression>
@@ -93,6 +99,9 @@ class ModelInvoker:
             <file_name>
             {文件名称}
             </file_name>
+            <file_size>
+            {文件大小}
+            </file_size>
             <compression>
             {压缩算法}
             </compression>
@@ -101,6 +110,9 @@ class ModelInvoker:
             <file_name>
             {文件名称}
             </file_name>
+            <file_size>
+            {文件大小}
+            </file_size>
             <compression>
             {压缩算法}
             </compression>
@@ -114,13 +126,15 @@ class ModelInvoker:
             4.<compression></compression>中的压缩算法内容 请严格按照我提供的压缩算法列表的文本值为主
             5.统一个<plans></plans>中不要出现 <file_name></file_name>相同的 <plan></plan>
             6.<think></think> 固定使用markdown语法，方案选择的理由需要全面，专业，文本结构合理，思路清晰，可以使用icon进行点缀 需要包含的固定内容 a.文件分析报告 b.方案选择理由 c.预期结果
+            7.<plan index='{文件的index}'></plan>中的index属性请严格按照我提交的index填写
+            8.<except></except>需要进行转移 避免解析XML出错
         """ % register.compression_list()
         self.llm = self._init_model()
 
     @staticmethod
     def generate_files_prompt(files):
         file_descriptions = "\n".join(
-            f"- 文件名: {file['name']}, 类型: {file['type']}, 大小: {file['size']}"
+            f"- 文件index: {file['index']} 文件名: {file['name']}, 文件大小: {file['size']}， 文件类型: {file['type']}"
             for file in files
         )
         return f"请分析以下文件：\n{file_descriptions}"

@@ -1,7 +1,9 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.http import StreamingHttpResponse, JsonResponse
+from rest_framework.renderers import BaseRenderer
+from compression_selector.tools import register as compresspror
+from django.http import StreamingHttpResponse, JsonResponse, FileResponse
 from .serializers import FileUploadSerializer
 from .models import CompressionTask, TempUploadedFile
 from model_invoker import ModelInvoker
@@ -9,6 +11,7 @@ from file_manager.models import File
 from lxml import etree
 import uuid
 import json
+import io
 from django.contrib.auth.decorators import login_required
 class FileUploadView(APIView):
     def post(self, request):
@@ -23,8 +26,6 @@ class FileUploadView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 def analysis_view(request):
-
-        print(111111111111111)
         # 强制设置Accept头为text/event-stream
         request.accepted_renderer = None
         request.accepted_media_type = 'text/event-stream'
@@ -61,11 +62,11 @@ def analysis_view(request):
         print(config)
         # 3. 准备模型输入
         file_data = [{
-            'index': idx,
+            'index': file.id,
             'name': file.original_name,
             'size': file.size,
             'type': file.type or file.original_name.split('.')[-1].upper()
-        } for idx, file in enumerate(files)]
+        } for _, file in enumerate(files)]
 
         # 4. 创建流式响应
         def generate():
@@ -124,7 +125,7 @@ def analysis_view(request):
                 for plan in root.xpath('//plan'):
                     plan_list.append({
                         "id": plan.get('index'),
-                        "size": "100MB",
+                        "size": plan.xpath('./file_size/text()')[0].strip(),
                         "name": plan.xpath('./file_name/text()')[0].strip(),
                         "selectedAlgorithm": plan.xpath('./compression/text()')[0].strip(),
                         "showAlgorithmList": False
@@ -156,7 +157,47 @@ def analysis_view(request):
 
 
 
+class CompressionApplyView(APIView):
+    def post(self, request):
+        try:
+            file_id = request.data.get('file_id')
+            algorithm = request.data.get('algorithm', "None")
+
+            # 查询任务关联的文件
+            file_objs = TempUploadedFile.objects.filter(id=file_id)
+            if not file_objs.exists():
+                return Response({
+                    'success': False,
+                    'error': 'No files found for this task'
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            # 获取文件对象
+            file_obj = file_objs.first()
+
+            # 创建压缩后的文件流
+            output = io.BytesIO()
+            # 假设 compresspror.compress_bytes 是一个压缩文件的函数
+            input_path = file_obj.file.path
+            print(input_path)
+            bytes = compresspror.compress_bytes(algorithm, input_path)
+            output.write(bytes)
+
+            # 返回压缩后的文件流
+            output.seek(0)
+            response = FileResponse(output, content_type='application/octet-stream')
+            response['Content-Disposition'] = f'attachment; filename="{file_obj.original_name}.{algorithm.lower()}"'
+            return response
+
+        except Exception as e:
+            import logging
+            logging.exception("An error occurred while applying compression:", exc_info=True)
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
 class TaskStatusView(APIView):
+    
     def get(self, request, task_id):
         try:
             task = CompressionTask.objects.get(id=uuid.UUID(task_id))

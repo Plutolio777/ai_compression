@@ -138,8 +138,8 @@ const openLoginModal = () => {
 };
 
 const menuItems = [
-    { id: 'compress', name: '智能解压缩', icon: 'fas fa-compress-arrows-alt' },
-    { id: 'cloud', name: '网盘中心', icon: 'fas fa-cloud' },
+    { id: 'compress', name: '智能压缩', icon: 'fas fa-compress-arrows-alt' },
+    { id: 'cloud', name: '文档管理', icon: 'fas fa-cloud' },
     { id: 'model', name: '模型配置', icon: 'fas fa-sliders-h' },
     { id: 'strategy', name: '智能策略', icon: 'fas fa-brain' },
     { id: 'tags', name: '标签管理', icon: 'fas fa-tags' },

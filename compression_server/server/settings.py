@@ -171,6 +171,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.StaticHTMLRenderer',
+        'rest_framework.renderers.BaseRenderer',  # BaseRenderer 为处理二进制流数据
     ),
     'DEFAULT_PARSER_CLASSES': (
         'rest_framework.parsers.JSONParser',

@@ -5,7 +5,7 @@
 2. 压缩文件：compressed_file = compressor.compress("input.txt", "output.gz")
 3. 解压文件：decompressed_file = compressor.decompress("output.gz", "decompressed.txt")
 """
-
+import io
 import bz2
 import gzip
 import lzma
@@ -31,8 +31,6 @@ from zopfli.zlib import compress as zopfli_compress
 # 第三方库需安装：pip install lz4 python-snappy brotli python-lzo zopfli py7zr zstandard blosc
 
 
-
-
 class BaseCompressor(ABC):
     """压缩算法基类"""
 
@@ -44,6 +42,18 @@ class BaseCompressor(ABC):
     def decompress(self, input_path: str, output_path: str, **kwargs) -> str:
         pass
 
+    @abstractmethod
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        return self.compress_data(data, **kwargs)
+
+    @abstractmethod
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed_data = self._read_bytes(input_path)
+        return self.decompress_data(compressed_data, **kwargs)
+
     @staticmethod
     def _read_bytes(input_path: str) -> bytes:
         with open(input_path, 'rb') as f:
@@ -54,31 +64,41 @@ class BaseCompressor(ABC):
         with open(output_path, 'wb') as f:
             f.write(data)
 
+
 class Compressor(object):
 
     def __init__(self):
         self.registry: Dict[str, BaseCompressor] = {}
 
-    def register(self, name:str, compress:BaseCompressor):
+    def register(self, name: str, compress: BaseCompressor):
         self.registry[name] = compress
 
     def compression_list(self):
         return list(self.registry.keys())
 
+    def compress_bytes(self, key, input_path: str, **kwargs) -> bytes:
+        return self.registry.get(key, "None").compress_bytes(input_path, **kwargs)
+
+    def decompress_bytes(self, key, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        return self.registry.get(key, "None").decompress_bytes(input_path, **kwargs)
+
+
 register = Compressor()
 
 
-def register_compression(name=None):
+def register_compression(name=None, prefix=""):
     """装饰器工厂：允许自定义注册键"""
+
     def decorator(cls):
         register.register(name, cls())
         return cls
+
     return decorator
 
 
-
 # ------------------- 无损压缩算法 -------------------
-@register_compression("DEFLATE/zlib")
+@register_compression("DEFLATE/zlib", ".zlib")
 class ZlibCompressor(BaseCompressor):
     """DEFLATE/zlib 压缩"""
 
@@ -94,7 +114,18 @@ class ZlibCompressor(BaseCompressor):
         self._write_bytes(output_path, data)
         return output_path
 
-@register_compression("GZIP")
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        return zlib.compress(data, level=kwargs.get('level', zlib.Z_BEST_COMPRESSION))
+
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        return zlib.decompress(compressed)
+
+
+@register_compression("GZIP", ".gzip")
 class GZipCompressor(BaseCompressor):
     """GZIP 压缩"""
 
@@ -108,7 +139,18 @@ class GZipCompressor(BaseCompressor):
             f_out.write(f_in.read())
         return output_path
 
-@register_compression("BZip2")
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        return self.compress_data(data, **kwargs)
+
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        return self.decompress_data(compressed, **kwargs)
+
+
+@register_compression("BZip2", ".gzip2")
 class BZip2Compressor(BaseCompressor):
     """BZip2 压缩"""
 
@@ -124,7 +166,18 @@ class BZip2Compressor(BaseCompressor):
         self._write_bytes(output_path, data)
         return output_path
 
-@register_compression("LZMA/XZ")
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        return bz2.compress(data, compresslevel=kwargs.get('level', 9))
+
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        return bz2.decompress(compressed)
+
+
+@register_compression("LZMA/XZ", ".lzma")
 class LZMACompressor(BaseCompressor):
     """LZMA/XZ 压缩"""
 
@@ -140,7 +193,18 @@ class LZMACompressor(BaseCompressor):
         self._write_bytes(output_path, data)
         return output_path
 
-@register_compression("LZ4")
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        return lzma.compress(data, preset=kwargs.get('preset', 9))
+
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        return lzma.decompress(compressed)
+
+
+@register_compression("LZ4", ".lz4")
 class LZ4Compressor(BaseCompressor):
     """LZ4 压缩"""
 
@@ -156,7 +220,18 @@ class LZ4Compressor(BaseCompressor):
         self._write_bytes(output_path, data)
         return output_path
 
-@register_compression("ZStandard")
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        return lz4.frame.compress(data)
+
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        return lz4.frame.decompress(compressed)
+
+
+@register_compression("ZStandard", ".zstandard")
 class ZstdCompressor(BaseCompressor):
     """ZStandard 压缩"""
 
@@ -172,7 +247,20 @@ class ZstdCompressor(BaseCompressor):
             dctx.copy_stream(f_in, f_out)
         return output_path
 
-@register_compression("Snappy")
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        cctx = zstd.ZstdCompressor(level=kwargs.get('level', 3))
+        return cctx.compress(data)
+
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        dctx = zstd.ZstdDecompressor()
+        return dctx.decompress(compressed)
+
+
+@register_compression("Snappy", ".snappy")
 class SnappyCompressor(BaseCompressor):
     """Snappy 压缩"""
 
@@ -188,7 +276,18 @@ class SnappyCompressor(BaseCompressor):
         self._write_bytes(output_path, data)
         return output_path
 
-@register_compression("Brotli")
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        return snappy.compress(data)
+
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        return snappy.decompress(compressed)
+
+
+@register_compression("Brotli", ".brotli")
 class BrotliCompressor(BaseCompressor):
     """Brotli 压缩"""
 
@@ -204,7 +303,18 @@ class BrotliCompressor(BaseCompressor):
         self._write_bytes(output_path, data)
         return output_path
 
-@register_compression("LZO")
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        return brotli.compress(data, mode=kwargs.get('mode', brotli.MODE_TEXT))
+
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        return brotli.decompress(compressed)
+
+
+@register_compression("LZO", ".lzo")
 class LZOCompressor(BaseCompressor):
     """LZO 压缩"""
 
@@ -220,7 +330,18 @@ class LZOCompressor(BaseCompressor):
         self._write_bytes(output_path, data)
         return output_path
 
-@register_compression("Zopfli")
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        return lzo.compress(data)
+
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        return lzo.decompress(compressed)
+
+
+@register_compression("Zopfli", ".zopfli")
 class ZopfliCompressor(BaseCompressor):
     """Zopfli (优化DEFLATE) 压缩"""
 
@@ -236,8 +357,19 @@ class ZopfliCompressor(BaseCompressor):
         self._write_bytes(output_path, data)
         return output_path
 
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        return zopfli_compress(data)
+
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        return zlib.decompress(compressed)
+
 
 # ------------------- 归档格式 -------------------
+@register_compression("Zip")
 class ZipCompressor(BaseCompressor):
     """ZIP 归档"""
 
@@ -251,7 +383,23 @@ class ZipCompressor(BaseCompressor):
             zipf.extractall(os.path.dirname(output_path))
         return output_path
 
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr(os.path.basename(input_path), data)
+        return buf.getvalue()
 
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        buf = io.BytesIO(compressed)
+        with zipfile.ZipFile(buf, 'r') as zipf:
+            return zipf.read(zipf.namelist()[0])
+
+
+@register_compression("7-Zip")
 class SevenZipCompressor(BaseCompressor):
     """7-Zip 归档"""
 
@@ -265,7 +413,30 @@ class SevenZipCompressor(BaseCompressor):
             archive.extractall(os.path.dirname(output_path))
         return output_path
 
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        print(input_path)
+        data = self._read_bytes(input_path)
+        buf = io.BytesIO()
+        # 在内存中创建7z文件，并写入文件数据
+        with py7zr.SevenZipFile(buf, 'w') as archive:
+            # 使用os.path.basename(input_path)来获取文件名，并将文件数据写入
+            archive.writestr(data, os.path.basename(input_path))
+        return buf.getvalue()
 
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        with io.BytesIO(data) as input_buf:
+            with py7zr.SevenZipFile(input_buf, mode='r') as archive:
+                extracted = archive.readall()
+        result_bytes = b''
+        for fileobj in extracted.values():
+            result_bytes += fileobj.read()
+        return result_bytes
+
+
+@register_compression("TarGz")
 class TarGzCompressor(BaseCompressor):
     """Tar + GZIP 压缩"""
 
@@ -279,42 +450,44 @@ class TarGzCompressor(BaseCompressor):
             tar.extractall(os.path.dirname(output_path))
         return output_path
 
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        data = self._read_bytes(input_path)
+        buf = io.BytesIO()
+        with tarfile.open(fileobj=buf, mode='w:gz') as tar:
+            info = tarfile.TarInfo(name=os.path.basename(input_path))
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+        return buf.getvalue()
 
-# ------------------- 有损压缩 -------------------
-@register_compression("WebP")
-class WebPCompressor(BaseCompressor):
-    """WebP 图像压缩"""
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        compressed = self._read_bytes(input_path)
+        buf = io.BytesIO(compressed)
+        with tarfile.open(fileobj=buf, mode='r:gz') as tar:
+            member = tar.getmembers()[0]
+            return tar.extractfile(member).read()
 
-    def compress(self, input_path: str, output_path: str, quality: int = 80, **kwargs) -> str:
-        img = Image.open(input_path)
-        img.save(output_path, 'WEBP', quality=quality)
-        return output_path
-
-    def decompress(self, input_path: str, output_path: str, **kwargs) -> str:
-        raise NotImplementedError("有损压缩不支持无损解压")
-
-@register_compression("MP3")
-class MP3Compressor(BaseCompressor):
-    """MP3 音频压缩"""
-
-    def compress(self, input_path: str, output_path: str, bitrate: str = '128k', **kwargs) -> str:
-        audio = AudioSegment.from_file(input_path)
-        audio.export(output_path, format='mp3', bitrate=bitrate)
-        return output_path
-
-    def decompress(self, input_path: str, output_path: str, **kwargs) -> str:
-        raise NotImplementedError("有损压缩不支持无损解压")
 
 @register_compression("None")
 class NoneCompressor(BaseCompressor):
     """无需压缩 音频压缩"""
 
     def compress(self, input_path: str, output_path: str, bitrate: str = '128k', **kwargs) -> str:
-        
+        self._write_bytes(output_path, self._read_bytes(input_path))
         return output_path
 
     def decompress(self, input_path: str, output_path: str, **kwargs) -> str:
+        self._write_bytes(output_path, self._read_bytes(input_path))
         return output_path
+
+    def compress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """压缩文件并返回bytes数据"""
+        return self._read_bytes(input_path)
+
+    def decompress_bytes(self, input_path: str, **kwargs) -> bytes:
+        """解压文件并返回bytes数据"""
+        return self._read_bytes(input_path)
 
 
 # ------------------- 使用示例 -------------------

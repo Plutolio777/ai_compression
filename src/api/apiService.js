@@ -213,6 +213,12 @@ async function request({method, url, data, params, pathParams, headers, isFileUp
 
 // 定义 API 配置对象
 const apiConfig = {
+  compressFiles: {
+    method: 'POST',
+    url: '/api/compression/apply/',
+    requiresAuth: true,
+
+  },
   downloadFile: {
     method: 'GET',
     url: '/api/files/:id/download',

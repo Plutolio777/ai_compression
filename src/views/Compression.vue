@@ -106,8 +106,20 @@
           <h3 class="font-medium text-blue-700">{{ result.title }}</h3>
           <!-- 压缩方案操作列表 -->
           <div class="flex space-x-2">
-            <button class="px-4 py-1.5 text-blue-600 bg-white rounded-md shadow-sm hover:bg-blue-50 transition-colors whitespace-nowrap">
-              应用方案
+            <button 
+              class="px-4 py-1.5 text-blue-600 bg-white rounded-md shadow-sm hover:bg-blue-50 transition-colors whitespace-nowrap"
+              @click="applyCompression(result)"
+              :disabled="result.isApplying"
+            >
+              <template v-if="result.isApplying">
+                <i class="fas fa-circle-notch fa-spin mr-1"></i> 压缩中...
+              </template>
+              <template v-else-if="result.isApplied">
+                <i class="fas fa-check-circle text-green-500 mr-1"></i> 压缩完成
+              </template>
+              <template v-else>
+                应用方案
+              </template>
             </button>
             <button class="px-4 py-1.5 text-gray-600 bg-white rounded-md shadow-sm hover:bg-gray-50 transition-colors whitespace-nowrap"
               @click="() => { currentEditIndex = index; showEditDialog = true }">
@@ -166,7 +178,7 @@
                     <i class="fas fa-chevron-down text-gray-400"></i>
                   </button>
                   <div v-if="file.showAlgorithmList"
-                    class="absolute w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                    class="absolute w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
                     <div class="py-1">
                       <button v-for="algo in compressionAlgorithms" :key="algo.value"
                         @click="selectAlgorithm(file, algo.value)"
@@ -202,8 +214,8 @@ import remarkGfm from 'remark-gfm' // 支持表格、任务列表等
 import remarkRehype from 'remark-rehype' // 转换到HTML领域
 import rehypeStringify from 'rehype-stringify'
 import apiService from '../api/apiService';
-import { ElMessageBox } from 'element-plus';
-import store from '@/store'; 
+import { ElMessageBox, ElMessage } from 'element-plus';
+import store from '../store'; 
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const showEditDialog = ref(false);
@@ -230,7 +242,10 @@ const compressionAlgorithms = [
   { value: 'Zopfli', label: 'Zopfli (优化DEFLATE)' },
   { value: 'WebP', label: 'WebP (图像压缩)' },
   { value: 'MP3', label: 'MP3 (音频压缩)' },
-  { value: 'None', label: '无需压缩' }
+  { value: 'None', label: '无需压缩' },
+  { value: '7-Zip', label: '7-Zip (现代化归档压缩)' },
+  { value: 'TarGz', label: 'TarGz (现代化归档压缩)' },
+  { value: 'Zip', label: 'Zip (现代化归档压缩)' },
 ];
 const fileList = ref<FileItem[]>([]);
 const currentTaskId = ref('');
@@ -244,6 +259,8 @@ interface AiResult {
   title: string;
   exception: string;
   files: FileItem[];
+  isApplying?: boolean;
+  isApplied?: boolean;
 }
 
 interface FileItem {
@@ -356,11 +373,62 @@ const selectAlgorithm = (file: any, algorithm: string) => {
   file.selectedAlgorithm = algorithm;
   file.showAlgorithmList = false;
 };
+
 // 应用压缩设置
+const applyCompression = async (result: AiResult) => {
+  try {
+    result.isApplying = true;
+    
+    // 收集文件ID和算法
+    const responses = await Promise.all(result.files.map(file => {
+      let data = {
+        file_id: file.id,
+        algorithm: file.selectedAlgorithm
+      }
+      return apiService.compressFiles(
+            data,  // data
+            {}, // params
+            {}, // pathKey
+            // {'Accept': 'application/octet-stream'} // headers
+            {},
+            {responseType: 'blob'}
+          )
+    }));
+
+    responses.forEach((response, index) => {
+      if (response.success) {
+        // 创建下载链接
+        const url = window.URL.createObjectURL(response.data);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `compressed_${result.title}_${result.files[index].name}.zip`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        // 释放URL对象
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 100);
+        
+        result.isApplied = true;
+        ElMessage.success('压缩完成，文件已下载');
+      } else {
+        ElMessage.error(response.error || '压缩失败');
+      }
+    })
+
+  } catch (error) {
+    console.error('压缩出错:', error);
+    ElMessage.error('压缩过程中出错');
+  } finally {
+    result.isApplying = false;
+  }
+};
+
+
+
 const applyCompressionSettings = () => {
-  // 这里可以处理压缩设置的保存逻辑
   showEditDialog.value = false;
-  // 重置下拉列表状态
   fileList.value.forEach(file => {
     file.showAlgorithmList = false;
   });
@@ -371,6 +439,7 @@ const applyCompressionSettings = () => {
 const triggerFileInput = () => {
   fileInput.value?.click();
 };
+
 const formatFileSize = (bytes: number) => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -487,10 +556,8 @@ const startStreamText = () => {
   isStreaming.value = true;
   isAnalyzing.value = true
   streamText.value = '';
-  const fullText = `# 🤖 SC-Pro 智能压缩系统 | 版本 2.1.5  
-*基于深度学习的自适应压缩引擎*
-
----
+  const fullText = `# 🤖 AI智能压缩决策专家 | 版本 2.1.5  
+*基于大模型的自适应压缩引擎*
 
 ## ▌ 系统特性
 
@@ -511,7 +578,6 @@ const startStreamText = () => {
 - 内存数据焚毁机制  
 - 离线沙箱处理环境  
 
----
 
 ## ▌ 操作协议
 
@@ -527,7 +593,6 @@ const startStreamText = () => {
    - 点击\`▼启动智能优化\`  
    - 实时显示资源占用状态  
 
----
 
 ## ▌ 实时监控面板  
 | 指标            | 状态               |
@@ -548,7 +613,7 @@ const startStreamText = () => {
       }
       isStreaming.value = false;
     }
-  }, 20);
+  }, 10);
 };
 startStreamText();
 onUnmounted(() => {
