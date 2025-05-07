@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant 前端 as 前端Vue组件
+    participant api as modelService
+    participant 后端 as Django后端
+    participant 数据库 as 数据库
+
+    %% 加载配置流程
+    前端->>api: loadConfig()调用getConfig
+    api->>后端: GET /api/model/config
+    后端->>数据库: 查询ModelConfig
+    数据库-->>后端: 返回配置数据
+    后端-->>api: 返回格式化配置
+    api-->>前端: 更新UI显示
+
+    %% 保存配置流程
+    前端->>api: saveConfig()调用saveConfig
+    api->>后端: POST /api/model/config
+    后端->>数据库: 保存/更新ModelConfig
+    数据库-->>后端: 操作确认
+    后端-->>api: 返回操作结果
+    api-->>前端: 显示成功/错误提示
+
+    %% 测试连接流程
+    前端->>api: testConnection()调用testConnection
+    api->>后端: POST /api/model/test
+    后端->>数据库: 查询配置
+    数据库-->>后端: 返回配置
+    后端-->>api: 模拟API调用
+    api-->>前端: 更新连接状态

@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/files/', include('file_manager.urls')),
     path('api/models/', include('model_manager.urls')),
     path('api/compression/', include('compression_manager.urls')),
+    path('api/strategies/', include('strategy_manager.urls')),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 ]
 

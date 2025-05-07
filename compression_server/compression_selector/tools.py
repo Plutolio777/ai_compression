@@ -24,7 +24,6 @@ import py7zr
 import snappy
 import zstandard as zstd
 from PIL import Image
-from pydub import AudioSegment
 from zopfli.zlib import compress as zopfli_compress
 
 

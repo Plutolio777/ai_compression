@@ -296,12 +296,7 @@ const apiConfig = {
     },
     getStrategies: {
         method: 'GET',
-        url: '/api/strategies',
-        requiresAuth: true
-    },
-    createStrategy: {
-        method: 'POST',
-        url: '/api/strategies',
+        url: '/api/strategies/strategies',
         requiresAuth: true
     },
     updateStrategy: {
@@ -398,6 +393,11 @@ const apiConfig = {
     method: 'GET',
     url: '/api/compression/task/:task_id/',
     isFileUpload: false,
+    requiresAuth: true
+  },
+  saveStrategies: {
+    method: 'POST',
+    url: '/api/strategies/strategies/save_all/',
     requiresAuth: true
   }
 };

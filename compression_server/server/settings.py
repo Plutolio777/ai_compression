@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     'file_manager.apps.FileManagerConfig',
     'model_manager.apps.ModelManagerConfig',
     'compression_manager.apps.CompressionManagerConfig',
+    'strategy_manager.apps.StrategyManagerConfig',
     'django_extensions'
 ]
 
@@ -202,3 +203,7 @@ MEDIA_URL = '/media/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+GRAPH_MODELS = {
+  'all_applications': True,
+  'group_models': True,
+}

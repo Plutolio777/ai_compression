@@ -103,41 +103,34 @@
           <h3>归档策略配置</h3>
         </div>
         <div class="card-body">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">策略名称</label>
-              <input v-model="archiveStrategy.name" class="input-field">
-            </div>
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">策略描述</label>
-              <input v-model="archiveStrategy.description" class="input-field">
-            </div>
-              <div>
-              <label class="block text-sm text-gray-600 mb-1">归档格式</label>
-              <div class="relative">
-                <button @click="showArchiveFormatList = !showArchiveFormatList"
-                  class="w-full px-3 py-2 text-left bg-white border border-gray-300 rounded-lg flex items-center justify-between">
-                  <span>{{ archiveStrategy.archive.format.toUpperCase() }}</span>
-                  <i class="fas fa-chevron-down text-gray-400"></i>
-                </button>
-                <div v-if="showArchiveFormatList" 
-                  class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                  <button @click="archiveStrategy.archive.format = 'zip'; showArchiveFormatList = false"
-                    class="w-full px-3 py-2 text-left hover:bg-gray-50">
-                    ZIP
-                  </button>
-                  <button @click="archiveStrategy.archive.format = 'tar'; showArchiveFormatList = false"
-                    class="w-full px-3 py-2 text-left hover:bg-gray-50">
-                    TAR
-                  </button>
-                </div>
+          <div class="mb-6">
+            <h4 class="font-medium mb-3 text-gray-700 border-b pb-2">基本信息</h4>
+            <div class="space-y-4">
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">策略名称</label>
+                <input v-model="archiveStrategy.name" class="input-field h-9 text-sm rounded-lg">
+              </div>
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">策略描述</label>
+                <textarea 
+                  v-model="archiveStrategy.description"
+                  class="input-field"
+                  placeholder="请输入策略描述...">
+                </textarea>
               </div>
             </div>
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">分卷大小(MB)</label>
-              <input v-model.number="archiveStrategy.archive.volumeSize" type="number" class="input-field">
-            </div>
           </div>
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">归档周期(天)</label>
+              <input v-model.number="archiveStrategy.archive.period" type="number" min="1" class="input-field h-9 text-sm rounded-lg">
+            </div>
+            <div class="flex items-center">
+              <label class="block text-sm text-gray-600 mr-3 mt-5">是否智能归档</label>
+              <label class="relative inline-flex items-center cursor-pointer mt-5">
+                <input type="checkbox" v-model="archiveStrategy.archive.isArchiveOnly" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
         </div>
       </div>
     </div>
@@ -189,18 +182,6 @@ const compressionStrategy = ref({
   description: '适用于普通文件的默认压缩策略',
   compression: {
     rules: [
-      {
-        type: 'fileType',
-        
-        uuid: crypto.randomUUID(), // 使用更可靠的唯一标识
-        name: '图片压缩策略',
-        config: {
-          fileTypes: '.jpg,.png',
-          fileCategory: 'image',
-          algorithm: 'zip',
-        },
-        showAlgorithmList: false
-      }
     ]
   }
 })
@@ -212,8 +193,8 @@ const archiveStrategy = ref({
   name: '高效归档策略',
   description: '大文件分卷归档策略',
   archive: {
-    format: 'zip',
-    volumeSize: 500
+    period: 7,  // 默认7天归档一次
+    isArchiveOnly: false  // 默认同时进行压缩
   }
 })
 
@@ -271,28 +252,49 @@ const getRuleComponent = (type) => {
 
 // 保存所有策略
 const saveAllStrategies = async () => {
+  const payload = {
+    compression: compressionStrategy.value,
+    archive: archiveStrategy.value
+  }
+
   if (isDev) {
     // 开发环境模拟保存
-    console.log('保存策略:', {
-      compression: compressionStrategy.value.compression.rules,
-      archive: archiveStrategy.value
-    })
+    console.log('保存策略:', {})
     return { success: true }
   } else {
     // 生产环境调用API
-    const res = await apiService.saveStrategies({
-      compression: compressionStrategy.value,
-      archive: archiveStrategy.value
-    })
+    const res = await apiService.saveAllStrategies(payload)
     return res
   }
 }
 
-// 初始化加载时可以添加一些默认规则
-onMounted(() => {
-  if (compressionStrategy.value.compression.rules.length === 0) {
-    addRule('fileType')
+// 加载策略数据
+const loading = ref(false)
+
+// 从API获取策略数据
+const loadStrategies = async () => {
+  try {
+    loading.value = true
+    const res = await apiService.getStrategies()
+    if (res.success) {
+      compressionStrategy.value = res.data.data.compression
+      archiveStrategy.value =  res.data.data.archive
+    } else {
+      // 没有策略时添加默认规则
+      // if (compressionStrategy.value.compression.rules.length === 0) {
+      //   addRule('fileType')
+      // }
+    }
+  } catch (error) {
+    console.error('加载策略失败:', error)
+  } finally {
+    loading.value = false
   }
+}
+
+// 初始化加载
+onMounted(() => {
+  loadStrategies()
 })
 </script>
 
